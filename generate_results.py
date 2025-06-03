@@ -23,7 +23,7 @@ path_figure = "results/figure/"
 
 
 if pars.fig_number == 0:
-    #generate figure for inpainting qualitative comparison in the paper on the castle image.
+    #generate figure for deblurring on 5 images with various momentum parameter
     path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_"
 
     theta_list = [0.01, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9]
@@ -36,7 +36,7 @@ if pars.fig_number == 0:
             psnr_list.append(dic['psnr_list'])
         psnr_list = np.array(psnr_list)
         psnr_mean = np.mean(psnr_list, axis = 0)
-        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = str(theta))
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
     
     path_result = "results/set5/RED_level_0.1_lamb18"
     psnr_list = []
@@ -48,5 +48,148 @@ if pars.fig_number == 0:
     plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED')
 
     plt.legend()
+    plt.title(r"PSNR evolution on deblurring with $\sigma = 12.5/255$ on $5$ images" +"\n" + r"from CBSD68 dataset with various momentum parameter $\theta$")
     fig.savefig(path_figure+'/result_momentum_various_theta.png', dpi = 300)
+    plt.show()
+
+
+if pars.fig_number == 1:
+    #generate figure for deblurring on 5 images with various restarting parameter and the momentum parameter theta = 0.2
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.2/B_"
+
+    B_list = [100.0, 1000.0, 3000.0, 5000.0, 7000.0, 10000.0, 100000.0]
+    fig = plt.figure()
+    
+    for B in B_list:
+        psnr_list = []
+        for i in range(5):
+            dic = np.load(path_result + str(B) + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list.append(dic['psnr_list'])
+        psnr_list = np.array(psnr_list)
+        psnr_mean = np.mean(psnr_list, axis = 0)
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = $"+str(B)[:-2])
+    
+    path_result = "results/set5/RED_level_0.1_lamb18"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED')
+    
+
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.2"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'No restart', linestyle='--')
+
+    plt.legend()
+    plt.title(r"PSNR evolution on deblurring with $\sigma = 12.5/255$ and $\theta = 0.2$ on $5$ images" +"\n from CBSD68 dataset with various restarting parameter B")
+    fig.savefig(path_figure+'/result_momentum_various_B_theta_0.2.png', dpi = 300)
+    plt.show()
+
+
+
+if pars.fig_number == 2:
+    #generate figure for deblurring on 5 images with various restarting parameter and the momentum parameter theta = 0.2
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.1/B_"
+
+    B_list = [100.0, 1000.0, 3000.0, 5000.0, 7000.0, 10000.0, 100000.0]
+    fig = plt.figure()
+    
+    for B in B_list:
+        psnr_list = []
+        for i in range(5):
+            dic = np.load(path_result + str(B) + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list.append(dic['psnr_list'])
+        psnr_list = np.array(psnr_list)
+        psnr_mean = np.mean(psnr_list, axis = 0)
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = $"+str(B)[:-2])
+    
+    path_result = "results/set5/RED_level_0.1_lamb18"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED')
+    
+
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.1"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'No restart'+r"$\theta = 0.1$", linestyle='--')
+
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.2"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'No restart'+r"$\theta = 0.2$", linestyle='--')
+
+    plt.legend()
+    plt.title(r"PSNR evolution on deblurring with $\sigma = 12.5/255$ and $\theta = 0.1$ on $5$ images" +"\n from CBSD68 dataset with various restarting parameter B")
+    fig.savefig(path_figure+'/result_momentum_various_B_theta_0.1.png', dpi = 300)
+    plt.show()
+
+
+if pars.fig_number == 3:
+    #generate figure for deblurring on 5 images with various restarting parameter and the momentum parameter theta = 0.15
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.05/B_"
+
+    B_list = [100.0, 1000.0, 3000.0, 5000.0, 7000.0, 10000.0, 100000.0]
+    fig = plt.figure()
+    
+    for B in B_list:
+        psnr_list = []
+        for i in range(5):
+            dic = np.load(path_result + str(B) + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list.append(dic['psnr_list'])
+        psnr_list = np.array(psnr_list)
+        psnr_mean = np.mean(psnr_list, axis = 0)
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = $"+str(B)[:-2])
+    
+    path_result = "results/set5/RED_level_0.1_lamb18"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED')
+    
+
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.05"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'No restart'+r"$\theta = 0.05$", linestyle='--')
+
+    path_result = "results/set5/RED_level_0.1_lamb18_Momentum_theta_0.2"
+    psnr_list = []
+    for i in range(5):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'No restart'+r"$\theta = 0.2$", linestyle='--')
+
+    plt.legend()
+    plt.title(r"PSNR evolution on deblurring with $\sigma = 12.5/255$ and $\theta = 0.1$ on $5$ images" +"\n from CBSD68 dataset with various restarting parameter B")
+    fig.savefig(path_figure+'/result_momentum_various_B_theta_0.05.png', dpi = 300)
     plt.show()
