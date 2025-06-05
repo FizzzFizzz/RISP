@@ -1,4 +1,4 @@
-for i in 100 1000 3000 5000 7000 10000 100000
-do 
-    python main.py --dataset_name "set5" --momentum --theta 0.05 --restarting_li --B $i --dont_save_images
-done
+for j in 0.01 0.05 0.1 0.2
+    do
+        python main.py --dataset_name "set5" --momentum --theta $j --dont_save_images --nb_itr 200
+    done

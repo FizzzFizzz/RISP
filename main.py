@@ -40,6 +40,7 @@ parser.add_argument('--sigma_obs', type=float, default=12.75, help = "Standard v
 parser.add_argument('--dataset_name', type=str, default='set1', help = "Name of the dataset of image to restore")
 parser.add_argument('--kernel_name', type=str, default='levin_6.png', help = "Name of the kernel of blur")
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
+parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
@@ -48,6 +49,7 @@ parser.set_defaults(save_each_itr=False)
 hparams = parser.parse_args()
 
 model_path = hparams.model_path
+nb_itr = hparams.nb_itr
 n_channels = 3
 device = torch.device('cuda:'+str(hparams.gpu_number) if torch.cuda.is_available() else 'cpu')
 
@@ -75,7 +77,7 @@ class Drunet_running(torch.nn.Module):# DRUNet model definition
 
 
 class PnP(nn.Module):
-    def __init__(self, nb_itr=50):
+    def __init__(self, nb_itr=nb_itr):
         '''
             nb_itr : number of iterations of the PnP algorithm
         '''
@@ -127,6 +129,7 @@ class PnP(nn.Module):
         fft_k = deblur.p2o(K, u.shape[-2:])
         fft_kH = torch.conj(fft_k)
         abs_k = fft_kH * fft_k
+        self.nb_restart_activ = 0
 
         y_denoised = u
         x = u
@@ -161,7 +164,9 @@ class PnP(nn.Module):
                 restart_crit_su = torch.mean(torch.abs(x-x_old)).item()
                 if (k>k_min) and (restart_crit_su<restart_crit_su_old):
                     j = 0
+                    x_old = x
                     self.nb_restart_activ += 1
+                    restart_crit_su = -float('inf')
                 else:
                     j += 1
             elif restarting_li:
@@ -170,6 +175,7 @@ class PnP(nn.Module):
                     j = 0
                     x_old = x
                     self.nb_restart_activ += 1
+                    restart_crit_li = 0
                 else:
                     j += 1
             else:
@@ -267,6 +273,9 @@ for i, clean_image_path in enumerate(input_paths):
     os.makedirs(savepth, exist_ok = True)
     if '--B' in sys.argv:
         savepth = os.path.join(savepth, 'B_'+str(hparams.B))
+        os.makedirs(savepth, exist_ok = True)
+    if '--nb_itr' in sys.argv:
+        savepth = os.path.join(savepth, 'nb_itr_'+str(hparams.nb_itr))
         os.makedirs(savepth, exist_ok = True)
 
     if not(dont_save_images):
