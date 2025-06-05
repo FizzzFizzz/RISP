@@ -263,14 +263,21 @@ for i, clean_image_path in enumerate(input_paths):
     if restarting_su or restarting_li:
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
-    savepth = 'results/'+hparams.dataset_name+"/RED_level_{}_lamb{}".format(denoiser_level, lamb)
+    savepth = 'results/'+hparams.dataset_name+"/RED_den_level_{}_lamb_{}".format(denoiser_level, lamb)
     if Nesterov:
-        savepth = savepth + "_Nesterov_r_{}".format(r)
+        savepth = savepth + "_Nesterov"
+        savepth = os.path.join(savepth, 'r_'+str(r))
+        os.makedirs(savepth, exist_ok = True)
     elif momentum:
-        savepth = savepth + "_Momentum_theta_{}".format(theta)
+        savepth = savepth + "_Momentum"
+        savepth = os.path.join(savepth, 'theta_'+str(theta))
+        os.makedirs(savepth, exist_ok = True)
     if restarting_su:
-        savepth = savepth + "restarting_su"
-    os.makedirs(savepth, exist_ok = True)
+        savepth = os.path.join(savepth, "restarting_su")
+        os.makedirs(savepth, exist_ok = True)
+    if restarting_li:
+        savepth = os.path.join(savepth, "restarting_li")
+        os.makedirs(savepth, exist_ok = True)
     if '--B' in sys.argv:
         savepth = os.path.join(savepth, 'B_'+str(hparams.B))
         os.makedirs(savepth, exist_ok = True)
