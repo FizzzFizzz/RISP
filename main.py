@@ -22,7 +22,7 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument('--model_path', type=str, default="models_ckpt/DRUNet_color.pth", help = "The path for the DRUNet pretrained weights")
+parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
 parser.add_argument('--n_channels', type=int, default=3, help = "number of channels of the image, by default RGB")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
