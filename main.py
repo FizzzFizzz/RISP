@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import hdf5storage
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,6 +40,7 @@ parser.add_argument('--denoiser_level', type=float, default=0.1, help = "Denoise
 parser.add_argument('--sigma_obs', type=float, default=12.75, help = "Standard variation of the noise in the observation in [0.,255.]")
 parser.add_argument('--dataset_name', type=str, default='set1', help = "Name of the dataset of image to restore")
 parser.add_argument('--kernel_name', type=str, default='levin_6.png', help = "Name of the kernel of blur")
+parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the kernel of blur")
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
@@ -239,10 +241,24 @@ for i, clean_image_path in enumerate(input_paths):
     model.eval()
     model.net.eval()
 
-    kernel_path = 'utils/kernels/'+hparams.kernel_name
-    kernel = util.imread_uint(kernel_path,1)
-    kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
-    kernel = kernel / torch.sum(kernel)
+    if '--kernel_index' in sys.argv:
+        k_index = hparams.kernel_index
+        kernel_path = os.path.join('utils/kernels', 'Levin09.mat')
+        kernels = hdf5storage.loadmat(kernel_path)['kernels']
+        # Kernels follow the order given in the paper (Table 2). The 8 first kernels are motion blur kernels, the 9th kernel is uniform and the 10th Gaussian.
+        if k_index == 8: # Uniform blur
+            kernel = (1/81)*np.ones((9,9))
+        elif k_index == 9:  # Gaussian blur
+            kernel = deblur.matlab_style_gauss2D(shape=(25,25),sigma=1.6)
+        else : # Motion blur
+            kernel = kernels[0, k_index]
+        kernel = torch.from_numpy(np.ascontiguousarray(kernel)).float().unsqueeze(0).unsqueeze(0)
+    else:
+        kernel_path = 'utils/kernels/'+hparams.kernel_name
+        kernel = util.imread_uint(kernel_path,1)
+        kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
+        kernel = kernel / torch.sum(kernel)
+
     clean_image = util.imread_uint(clean_image_path, 3)
     clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
     observation = gen_data(clean_image, sigma_obs, kernel)
@@ -264,6 +280,9 @@ for i, clean_image_path in enumerate(input_paths):
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
     savepth = 'results/'+hparams.dataset_name+"/RED_den_level_{}_lamb_{}".format(denoiser_level, lamb)
+    if '--kernel_index' in sys.argv:
+        savepth = os.path.join(savepth, 'kernel_'+str(k_index))
+        os.makedirs(savepth, exist_ok = True)
     if Nesterov:
         savepth = savepth + "_Nesterov"
         savepth = os.path.join(savepth, 'r_'+str(r))

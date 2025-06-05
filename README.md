@@ -2,6 +2,8 @@
 
 If you want to test it on your own, it would be beneficial if you are familiar with DPIR (https://github.com/cszn/DPIR). The code is based on this pioneer project.
 
+You can download the weights of the DRUNet architecture learn on color images in the following [link](https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true).
+
 
 To test: How to test PnP with momentum ?
 ----
