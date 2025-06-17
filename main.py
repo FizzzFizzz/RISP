@@ -6,23 +6,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
-import logging
 import os
 from natsort import os_sorted
 import sys 
-from PIL import Image
 # sys.path.append("..")
 sys.path.append("utils/")
 import utils_image as util
 import utils_logger
 import utils_deblur as deblur
-sys.path.append("utils/models/") 
-from models.network_unet import UNetRes as Net
-from tqdm import tqdm
 from argparse import ArgumentParser
+from algorithm import *
 
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
+parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle")
 parser.add_argument('--n_channels', type=int, default=3, help = "number of channels of the image, by default RGB")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
@@ -50,150 +47,11 @@ parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true'
 parser.set_defaults(save_each_itr=False)
 hparams = parser.parse_args()
 
+Pb = hparams.Pb
 model_path = hparams.model_path
 nb_itr = hparams.nb_itr
-n_channels = 3
+n_channels = hparams.n_channels
 device = torch.device('cuda:'+str(hparams.gpu_number) if torch.cuda.is_available() else 'cpu')
-
-class Drunet_running(torch.nn.Module):# DRUNet model definition 
-    def __init__(self, model_path, n_channels, nc=[64, 128, 256, 512], nb=4, act_mode='R', downsample_mode="strideconv", upsample_mode="convtranspose", bias=False):
-        super(Drunet_running, self).__init__()
-        self.model = Net(in_nc=n_channels+1, out_nc=n_channels, nc=nc, nb=nb, act_mode=act_mode, downsample_mode=downsample_mode, upsample_mode=upsample_mode, bias=bias)
-        self.model.load_state_dict(torch.load(model_path), strict=True)
-        for k, v in self.model.named_parameters():
-            v.requires_grad = False
-        self.model.eval()
-    
-    def to(self, device):
-        self.model.to(device)    
-
-    def forward(self, x, sigma):
-        '''
-        x : image with values in [0, 1]
-        sigma : standard deviation of denoising in [0, 1]
-        '''
-        sigma = float(sigma)
-        sigma_div_255 = torch.FloatTensor([sigma]).repeat(1, 1, x.shape[2], x.shape[3]).to(device)
-        x = torch.cat((x, sigma_div_255), dim=1)
-        return self.model(x)
-
-
-class PnP(nn.Module):
-    def __init__(self, nb_itr=nb_itr):
-        '''
-            nb_itr : number of iterations of the PnP algorithm
-        '''
-        super(PnP, self).__init__()
-        self.nb_itr = nb_itr
-        self.net = Drunet_running(model_path = model_path, n_channels = n_channels)
-
-        # only test
-        self.res = {}
-        self.res['psnr'] = [0] * nb_itr
-        self.res['ssim'] = [0] * nb_itr
-        self.res['image'] = [0]* nb_itr
-        self.nb_restart_activ = 0
-
-    def get_psnr_i(self, u, clean, i):
-        '''
-        Compute the PSNR, SSIM and save the image at the iteration i.
-        '''
-        psnr = util.calculate_psnr_torch(u, clean).item()
-        self.res['psnr'][i] = psnr
-        ssim = util.calculate_ssim_torch(u, clean).item()
-        self.res['ssim'][i] = ssim
-        pre_i = torch.clamp(u, 0., 1.)
-        self.res['image'][i] = ToPILImage()(pre_i[0])
-
-    def forward(self, initial_uv, obs, clean, kernel, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02):
-        '''
-            Computed the RED Algorithm with
-                initial_uv : the initialization for the algorithm
-                obs : the observation, degraded image
-                clean : the clean image to compute the metrics at each iterations
-                kernel : the kernel of blur
-                sigma_obs : the noise level of the observation
-                lamb : the regularization parameter, multiplicative factor in front of the data-fidelity
-                denoiser_sigma : the noise parameter of the denoiser
-                theta : momentum parameter for fixed momentum
-                r : the parameter of the Generalized Nesterov momentum, r = 3, we recover the classic Nesterov momentum
-                B : parameter for the Li restarting criterion
-                Nesterov : boolean which gives if the Generalize Nesterov momentum is used
-                momentum : boolean which gives if fixed momentum is used
-                restarting_su : boolean which gives if the restarting criterion of Su is used (for Generalize momentum)
-                restarting_li : boolean which gives if the restarting criterion of Li is used (for fixed momentum)
-                stepsize : the stepsize of the algorithm
-        '''
-        # init
-        u  = obs
-        # average = obs
-        K = kernel
-        fft_k = deblur.p2o(K, u.shape[-2:])
-        fft_kH = torch.conj(fft_k)
-        abs_k = fft_kH * fft_k
-        self.nb_restart_activ = 0
-
-        y_denoised = u
-        x = u
-        y = u
-
-        if restarting_su:
-            # Restarting criterion proposed by "A Differential Equation for Modeling Nesterov’s Accelerated Gradient Method: Theory and Insights" section 5
-            restart_crit_su = -float('inf') 
-            j = 0
-            k_min = 5
-        if restarting_li:
-            #Restarting criterion proposed by "Restarted Nonconvex Accelerated Gradient Descent: No More Polylogarithmic Factor in the O( 7 4) Complexity"
-            restart_crit_li = 0
-            j = 0
-
-        for k in tqdm(range(self.nb_itr)):
-            x_old = x
-            self.get_psnr_i(torch.clamp(y_denoised, min = -0., max =1.), clean, k)
-
-            data_grad = abs_k * deblur.fftn(y) - fft_kH * deblur.fftn(obs)
-            data_grad = torch.real(deblur.ifftn(data_grad))
-
-            y = y.type(torch.cuda.FloatTensor)
-            y_denoised = self.net.forward(y,denoiser_sigma)
-            reg_grad = y - y_denoised
-
-            grad = reg_grad + lamb * data_grad
-
-            x = y - stepsize*grad
-            if restarting_su:
-                restart_crit_su_old = restart_crit_su
-                restart_crit_su = torch.mean(torch.abs(x-x_old)).item()
-                if (k>k_min) and (restart_crit_su<restart_crit_su_old):
-                    j = 0
-                    x_old = x
-                    self.nb_restart_activ += 1
-                    restart_crit_su = -float('inf')
-                else:
-                    j += 1
-            elif restarting_li:
-                restart_crit_li = restart_crit_li + torch.sum((x-x_old)**2).item()
-                if j * restart_crit_li > B:
-                    j = 0
-                    x_old = x
-                    self.nb_restart_activ += 1
-                    restart_crit_li = 0
-                else:
-                    j += 1
-            else:
-                j = k
-
-            if Nesterov:
-                if k+r==0:
-                    y = x + (x-x_old)
-                else:
-                    y = x + j/(j+r)*(x-x_old)
-            elif momentum:
-                y = x + (1-theta)*(x - x_old)
-            else:
-                y = x
-        return y_denoised
-
 
 
 def gen_data(clean_image, sigma, kernel, seed=0):
@@ -235,7 +93,7 @@ input_path = os.path.join('datasets', hparams.dataset_name)
 input_paths = os_sorted([os.path.join(input_path,p) for p in os.listdir(input_path)])
 
 for i, clean_image_path in enumerate(input_paths):
-    model = PnP()
+    model = PnP(nb_itr, model_path, n_channels, device, Pb)
     model.to(device)
     model.net.to(device)
     model.eval()
@@ -280,15 +138,16 @@ for i, clean_image_path in enumerate(input_paths):
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
     savepth = 'results/'+hparams.dataset_name+"/RED_den_level_{}_lamb_{}".format(denoiser_level, lamb)
+    os.makedirs(savepth, exist_ok = True)
     if '--kernel_index' in sys.argv:
         savepth = os.path.join(savepth, 'kernel_'+str(k_index))
         os.makedirs(savepth, exist_ok = True)
     if Nesterov:
-        savepth = savepth + "_Nesterov"
+        savepth = savepth + "/Nesterov"
         savepth = os.path.join(savepth, 'r_'+str(r))
         os.makedirs(savepth, exist_ok = True)
     elif momentum:
-        savepth = savepth + "_Momentum"
+        savepth = savepth + "/Momentum"
         savepth = os.path.join(savepth, 'theta_'+str(theta))
         os.makedirs(savepth, exist_ok = True)
     if restarting_su:
