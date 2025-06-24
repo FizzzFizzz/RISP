@@ -54,6 +54,21 @@ if pars.fig_number == 0:
     psnr_max = np.quantile(psnr_list, 0.75, axis = 0)
     line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED')
     plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+
+    path_result = "results/CBSD10/PGD_den_level_0.1_lamb_18/stepsize_2.0"
+    psnr_list = []
+    for i in range(10):
+        dic = np.load(path_result + "/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    psnr_std = np.std(psnr_list, axis = 0)
+    psnr_min = np.quantile(psnr_list, 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list, 0.75, axis = 0)
+    line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'PGD')
+    plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+
+
     plt.xlim(0,49)
     plt.xticks([0,49], ["0","50"])
     plt.ylim(15,30)

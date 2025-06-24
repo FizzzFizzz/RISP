@@ -50,7 +50,7 @@ class PnP(nn.Module):
         pre_i = torch.clamp(u, 0., 1.)
         self.res['image'][i] = ToPILImage()(pre_i[0])
 
-    def forward(self, initial_uv, obs, clean, kernel, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02):
+    def forward(self, initial_uv, obs, clean, kernel, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02, alg = "GD"):
         '''
             Computed the RED Algorithm with
                 initial_uv : the initialization for the algorithm
@@ -68,6 +68,8 @@ class PnP(nn.Module):
                 restarting_su : boolean which gives if the restarting criterion of Su is used (for Generalize momentum)
                 restarting_li : boolean which gives if the restarting criterion of Li is used (for fixed momentum)
                 stepsize : the stepsize of the algorithm
+                alg : Type of algorithm that is computed. If alg == "GD", a full gradient is computed, 
+                        if alg == "PGD", a gradient is computed on the regularization and a proximal-step on the data-fidelity
         '''
         # init
         u  = initial_uv
@@ -92,14 +94,18 @@ class PnP(nn.Module):
             x_old = x
             self.get_psnr_i(torch.clamp(y_denoised, min = -0., max =1.), clean, k)
 
-            data_grad = compute_data_grad(self, y = y, obs = obs)
+            data_grad = compute_data_grad(self, y, obs)
             y = y.type(torch.cuda.FloatTensor)
             y_denoised = self.net.forward(y, denoiser_sigma, self.device)
             reg_grad = y - y_denoised
 
-            grad = reg_grad + lamb * data_grad
+            if alg == "GD":
+                grad = reg_grad + lamb * data_grad
+                x = y - stepsize*grad
+            elif alg == "PGD":
+                x = data_fidelity_prox_step(self, y - (stepsize/lamb)*reg_grad, obs, stepsize)
 
-            x = y - stepsize*grad
+
             if restarting_su:
                 restart_crit_su_old = restart_crit_su
                 restart_crit_su = torch.mean(torch.abs(x-x_old)).item()

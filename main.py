@@ -30,6 +30,7 @@ parser.add_argument('--restarting_su', dest='restarting_su', action='store_true'
 parser.set_defaults(restarting_su=False)
 parser.add_argument('--restarting_li', dest='restarting_li', action='store_true')
 parser.set_defaults(restarting_li=False)
+parser.add_argument('--alg', type=str, default="GD", help = "type of step on the data-fidelity, if alg = 'GD' it is a graident step on the data-fidelity, if alg = 'PGD' it is a proximal step on the data-fidelity")
 parser.add_argument('--r', type=int, default=3, help = "Parameter for the Generalized Nesterov momentum")
 parser.add_argument('--B', type=float, default=5000., help = "Parameter restarting criterion proposed by Li")
 parser.add_argument('--lamb', type=float, default=18, help = "Regularization parameter")
@@ -85,6 +86,7 @@ restarting_li = hparams.restarting_li
 stepsize = hparams.stepsize
 dont_save_images = hparams.dont_save_images
 save_each_itr = hparams.save_each_itr
+alg = hparams.alg
 
 Average_PSNR = 0
 
@@ -128,7 +130,7 @@ for i, clean_image_path in enumerate(input_paths):
 
     # Run RED algorithm with or without Nesterov momentum
     with torch.no_grad():
-        model(initial_uv, observation, clean_image, kernel, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize)
+        model(initial_uv, observation, clean_image, kernel, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
 
     psnr_list = model.res['psnr']
     ssim_list = model.res['ssim']
@@ -137,7 +139,7 @@ for i, clean_image_path in enumerate(input_paths):
     if restarting_su or restarting_li:
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
-    savepth = 'results/'+hparams.dataset_name+"/RED_den_level_{}_lamb_{}".format(denoiser_level, lamb)
+    savepth = 'results/'+hparams.dataset_name+"/"+alg+"_den_level_{}_lamb_{}".format(denoiser_level, lamb)
     os.makedirs(savepth, exist_ok = True)
     if '--kernel_index' in sys.argv:
         savepth = os.path.join(savepth, 'kernel_'+str(k_index))
@@ -161,6 +163,9 @@ for i, clean_image_path in enumerate(input_paths):
         os.makedirs(savepth, exist_ok = True)
     if '--nb_itr' in sys.argv:
         savepth = os.path.join(savepth, 'nb_itr_'+str(hparams.nb_itr))
+        os.makedirs(savepth, exist_ok = True)
+    if '--stepsize' in sys.argv:
+        savepth = os.path.join(savepth, 'stepsize_'+str(hparams.stepsize))
         os.makedirs(savepth, exist_ok = True)
 
     if not(dont_save_images):
