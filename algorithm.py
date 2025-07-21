@@ -76,10 +76,13 @@ class PnP(nn.Module):
         data_fidelity_init(self, kernel = kernel, init = initial_uv) # Initialize the data-fidelity operators
         self.nb_restart_activ = 0
 
+        self.lamb = lamb
         y_denoised = u
         x = u
         y = u
 
+        out = y_denoised
+        
         if restarting_su:
             # Restarting criterion proposed by "A Differential Equation for Modeling Nesterov’s Accelerated Gradient Method: Theory and Insights" section 5
             restart_crit_su = -float('inf') 
@@ -92,7 +95,7 @@ class PnP(nn.Module):
 
         for k in tqdm(range(self.nb_itr)):
             x_old = x
-            self.get_psnr_i(torch.clamp(y_denoised, min = -0., max =1.), clean, k)
+            self.get_psnr_i(torch.clamp(out, min = -0., max =1.), clean, k)
 
             data_grad = compute_data_grad(self, y, obs)
             y = y.type(torch.cuda.FloatTensor)
@@ -102,8 +105,18 @@ class PnP(nn.Module):
             if alg == "GD":
                 grad = reg_grad + lamb * data_grad
                 x = y - stepsize*grad
+                out = y_denoised
+                if self.Pb == 'ODT':
+                    x = torch.clamp(x,-0.,1.)
+                    out = x
             elif alg == "PGD":
-                x = data_fidelity_prox_step(self, y - (stepsize/lamb)*reg_grad, obs, stepsize)
+                if self.Pb == 'ODT':
+                    x = data_fidelity_prox_step(self, y - stepsize*reg_grad, obs, stepsize)
+                    out = x
+                else: 
+                    x = data_fidelity_prox_step(self, y - (stepsize/lamb)*reg_grad, obs, stepsize)
+                    out = y_denoised
+                
 
 
             if restarting_su:
@@ -139,4 +152,4 @@ class PnP(nn.Module):
                 y = x + (1-theta)*(x - x_old)
             else:
                 y = x
-        self.get_psnr_i(torch.clamp(y_denoised, min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack
+        self.get_psnr_i(torch.clamp(out, min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack
