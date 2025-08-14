@@ -28,14 +28,17 @@ class PnP(nn.Module):
         super(PnP, self).__init__()
         self.nb_itr = nb_itr
         self.device = device
-        if denoiser_name == "DRUNet": 
-            self.net = Drunet_running(model_path = "models_ckpt/drunet_color.pth", n_channels = n_channels)
+        if denoiser_name == "DRUNet":
+            denoiser_net = Drunet_running(model_path = "models_ckpt/drunet_color.pth", n_channels = n_channels, device = device)
         elif denoiser_name == "GSDRUNet":
             # The pretrained GSDRNet weights can be download in : https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt
-            self.net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet.ckpt")
+            denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet.ckpt", device = device)
+        else:
+            raise ValueError("Denoiser not implemented.")
         self.Pb = Pb
         self.noise_model = noise_model
         self.sf = 1
+        self.net = denoiser_net
 
         # only test
         self.res = {}
@@ -105,7 +108,7 @@ class PnP(nn.Module):
 
             data_grad = compute_data_grad(self, y, obs)
             y = y.type(torch.cuda.FloatTensor)
-            y_denoised = self.net.forward(y, denoiser_sigma, self.device)
+            y_denoised = self.net.forward(y, denoiser_sigma)
             reg_grad = y - y_denoised
 
             if alg == "GD":

@@ -19,6 +19,7 @@ from algorithm import *
 
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
+parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet and GSDRUNet are implemented")
 parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle")
 parser.add_argument('--n_channels', type=int, default=3, help = "number of channels of the image, by default RGB")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
@@ -49,6 +50,7 @@ parser.set_defaults(save_each_itr=False)
 hparams = parser.parse_args()
 
 Pb = hparams.Pb
+denoiser_name = hparams.denoiser_name
 model_path = hparams.model_path
 nb_itr = hparams.nb_itr
 n_channels = hparams.n_channels
@@ -95,11 +97,11 @@ input_path = os.path.join('datasets', hparams.dataset_name)
 input_paths = os_sorted([os.path.join(input_path,p) for p in os.listdir(input_path)])
 
 for i, clean_image_path in enumerate(input_paths):
-    model = PnP(nb_itr, model_path, n_channels, device, Pb)
-    model.to(device)
-    model.net.to(device)
+    model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb)
     model.eval()
     model.net.eval()
+    model.to(device)
+    model.net.to(device)
 
     if '--kernel_index' in sys.argv:
         k_index = hparams.kernel_index
@@ -141,6 +143,12 @@ for i, clean_image_path in enumerate(input_paths):
     
     savepth = 'results/'+hparams.dataset_name+"/"+alg+"_den_level_{}_lamb_{}".format(denoiser_level, lamb)
     os.makedirs(savepth, exist_ok = True)
+    if '--sigma_obs' in sys.argv:
+        savepth = os.path.join(savepth, 'sigma_obs_'+str(sigma_obs))
+        os.makedirs(savepth, exist_ok = True)
+    if '--denoiser_name' in sys.argv:
+        savepth = os.path.join(savepth, 'denoiser_name_'+denoiser_name)
+        os.makedirs(savepth, exist_ok = True)
     if '--kernel_index' in sys.argv:
         savepth = os.path.join(savepth, 'kernel_'+str(k_index))
         os.makedirs(savepth, exist_ok = True)
@@ -167,6 +175,8 @@ for i, clean_image_path in enumerate(input_paths):
     if '--stepsize' in sys.argv:
         savepth = os.path.join(savepth, 'stepsize_'+str(hparams.stepsize))
         os.makedirs(savepth, exist_ok = True)
+
+    print("Results are saved in the path : ", savepth)
 
     if not(dont_save_images):
         if save_each_itr:
