@@ -185,23 +185,23 @@ for i, clean_image_path in enumerate(input_paths):
             for j in range(len(model.res['image'])):
                 model.res['image'][j].save(savepth_img + 'iterations_{}.png'.format(j))
         
-        model.res['image'][-1].save(savepth + '/restored_img.png')
+        model.res['image'][-1].save(savepth + "/{}_restored_img.png".format(i))
         clean_img_uint = util.tensor2uint(clean_image)
         obs_uint = util.tensor2uint(observation)
-        plt.imsave(savepth + '/clean_img.png', clean_img_uint)
-        plt.imsave(savepth + '/observation.png', obs_uint)
+        plt.imsave(savepth + "/{}_clean_img.png"+format(i), clean_img_uint)
+        plt.imsave(savepth + "/{}_observation.png"+format(i), obs_uint)
 
         itr_list = range(len(psnr_list))
         plt.clf()
         plt.plot(itr_list, psnr_list, '-', alpha=0.8, linewidth=1.5)
         plt.xlabel('iter')
         plt.ylabel('PSNR')
-        plt.savefig(savepth+'/PSNR_list.png')
+        plt.savefig(savepth+"/{}_PSNR_list.png".format(i))
         plt.clf()
         plt.plot(itr_list, ssim_list, '-', alpha=0.8, linewidth=1.5)
         plt.xlabel('iter')
         plt.ylabel('SSIM')
-        plt.savefig(savepth+'/SSIM_list.png')
+        plt.savefig(savepth+"/{}_SSIM_list.png".format(i))
     
     dict = {
             'clean_image' : util.tensor2uint(clean_image),

@@ -1,6 +1,6 @@
-for i in 0.19
+for i in 0.19 0.2 0.21
 do
-    for j in 20.
+    for j in 17. 20. 23.
     do 
         python main.py --gpu_number 1 --dataset_name "set5" --stepsize 0.1 --lamb $j --denoiser_level $i --alg "PGD" --sigma_obs 25. --nb_itr 500
     done
