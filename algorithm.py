@@ -11,6 +11,7 @@ from natsort import os_sorted
 import sys 
 # sys.path.append("..")
 sys.path.append("utils/")
+import deepinv
 import utils_image as util
 import utils_logger
 import utils_deblur as deblur
@@ -20,13 +21,18 @@ from forward_model import *
 
 
 class PnP(nn.Module):
-    def __init__(self, nb_itr=50, model_path = "models_ckpt/drunet_color.pth", n_channels = 3, device = 'cpu', Pb = 'deblurring', noise_model = "gaussian", sf = 1):
+    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', noise_model = "gaussian", sf = 1):
         '''
             nb_itr : number of iterations of the PnP algorithm
         '''
         super(PnP, self).__init__()
         self.nb_itr = nb_itr
-        self.net = Drunet_running(model_path = model_path, n_channels = n_channels)
+        self.device = device
+        if denoiser_name == "DRUNet": 
+            self.net = Drunet_running(model_path = "models_ckpt/drunet_color.pth", n_channels = n_channels)
+        elif denoiser_name == "GSDRUNet":
+            # The pretrained GSDRNet weights can be download in : https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt
+            self.net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet.ckpt")
         self.Pb = Pb
         self.noise_model = noise_model
         self.sf = 1
@@ -37,7 +43,7 @@ class PnP(nn.Module):
         self.res['ssim'] = [0] * (nb_itr + 1)
         self.res['image'] = [0] * (nb_itr + 1)
         self.nb_restart_activ = 0
-        self.device = device
+        
 
     def get_psnr_i(self, u, clean, i):
         '''
