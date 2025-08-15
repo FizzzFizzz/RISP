@@ -20,7 +20,7 @@ from denoiser_model import *
 
 
 
-def data_fidelity_init(self, kernel = None, init = None):
+def data_fidelity_init(self, kernel = None, mask = None, init = None):
     if self.Pb == 'deblurring':
         # Initialization of Gradient operator
         fft_k = deblur.p2o(kernel, init.shape[-2:])
@@ -36,7 +36,7 @@ def data_fidelity_init(self, kernel = None, init = None):
         self.k_tensor = torch.tensor(kernel).to(self.device)
         self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
     elif self.Pb == 'inpainting':
-        self.M = array2tensor(degradation).to(self.device)
+        self.M = array2tensor(mask).to(self.device)
     elif self.Pb == 'ODT':
         # print('ODT loves you~')
         from utils.inverse_scatter import InverseScatter
@@ -50,43 +50,28 @@ def data_fidelity_init(self, kernel = None, init = None):
 
 
 def compute_data_grad(self, x, obs):
-    if self.Pb == 'deblurring':
-        data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
-        data_grad = torch.real(deblur.ifftn(data_grad))
-        return data_grad
-    elif self.Pb == 'ODT':
-        with torch.enable_grad():
-            v = x.clone() 
-            v.requires_grad_()
-            t = v
-            t = t.type(torch.cuda.FloatTensor)
-            uscat_pred = self.scatter_op.forward(t, unnormalize=False)
-            difference = uscat_pred - obs
-            norm = torch.sum(torch.abs(difference)**2)
-            norm_grad = torch.autograd.grad(outputs=norm, inputs=v)[0]
-            data_grad = norm_grad
-        return data_grad
-    else:
-        raise ValueError("Forward Model not implemented")
-
-# def data_fidelity_grad(self, x, y):
-#     """
-#     Calculate the gradient of the data-fidelity term.
-#     :param x: Point where to evaluate F
-#     :param y: Degraded image
-#     """
-#     if self.hparams.noise_model == 'gaussian':
-#         if self.hparams.degradation_mode == 'deblurring':
-#             return utils_sr.grad_solution_L2(x, y, self.k_tensor, self.sf)
-#         elif self.hparams.degradation_mode == 'inpainting':
-#             return 2 * self.M * (x - y)
-#         else:
-#             raise ValueError('degradation not implemented')
-#     elif self.hparams.noise_model == 'speckle':
-#         return self.hparams.L*(1-torch.exp(y-x))
-#     else:
-#         raise ValueError('noise model not implemented')
-
+    if self.noise_model == 'gaussian':
+        if self.Pb == 'deblurring':
+            data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
+            data_grad = torch.real(deblur.ifftn(data_grad))
+        elif self.hparams.degradation_mode == 'inpainting':
+            data_grad = 2 * self.M * (x - obs)
+        elif self.Pb == 'ODT':
+            with torch.enable_grad():
+                v = x.clone() 
+                v.requires_grad_()
+                t = v
+                t = t.type(torch.cuda.FloatTensor)
+                uscat_pred = self.scatter_op.forward(t, unnormalize=False)
+                difference = uscat_pred - obs
+                norm = torch.sum(torch.abs(difference)**2)
+                norm_grad = torch.autograd.grad(outputs=norm, inputs=v)[0]
+                data_grad = norm_grad
+        else:
+            raise ValueError("Forward Model not implemented")
+    else :  
+        ValueError('Forward Model noise model not implemented')
+    return data_grad
 
 def data_fidelity_prox_step(self, x, y, stepsize):
     '''

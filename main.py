@@ -188,8 +188,8 @@ for i, clean_image_path in enumerate(input_paths):
         model.res['image'][-1].save(savepth + "/{}_restored_img.png".format(i))
         clean_img_uint = util.tensor2uint(clean_image)
         obs_uint = util.tensor2uint(observation)
-        plt.imsave(savepth + "/{}_clean_img.png"+format(i), clean_img_uint)
-        plt.imsave(savepth + "/{}_observation.png"+format(i), obs_uint)
+        plt.imsave(savepth + "/{}_clean_img.png".format(i), clean_img_uint)
+        plt.imsave(savepth + "/{}_observation.png".format(i), obs_uint)
 
         itr_list = range(len(psnr_list))
         plt.clf()
