@@ -18,6 +18,27 @@ import utils_sr
 from argparse import ArgumentParser
 from denoiser_model import *
 
+def gen_data(self, clean_image, sigma, kernel, seed=0):
+    """
+    Generate the degradate observation
+    """
+    # For reproducibility
+    gen = torch.Generator()
+    gen.manual_seed(seed)
+    if self.Pb == "deblurring":
+        fft_k = deblur.p2o(kernel, clean_image.shape[-2:])
+        temp = fft_k * deblur.fftn(clean_image)
+        observation_without_noise = torch.abs(deblur.ifftn(temp))
+        noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
+        observation = observation_without_noise + noise
+    if self.Pb == "inpainting":
+        probs = torch.full(size=(clean_image.shape[0],clean_image.shape[1]), self.p) # tensor of the full of the proba p
+        mask = torch.bernoulli(probs, generator=gen).to(self.device)
+        self.mask = mask.unsqueeze(2)
+        observation_without_noise = clean_image*self.mask
+        noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
+        observation = observation_without_noise + noise
+    return observation
 
 
 def data_fidelity_init(self, kernel = None, mask = None, init = None):

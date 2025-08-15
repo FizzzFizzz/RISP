@@ -400,7 +400,7 @@ if pars.table_number == 0:
     path_result = "results/set5/"
 
     for sigma in [0.21]: #[0.15, 0.17, 0.19, 0.2, 0.21]
-        for lamb in [15., 17., 19.]: # [17., 20., 23.]
+        for lamb in [15., 17., 20.]: # [17., 20., 23.]
             n = 5
             output_psnr = []
             output_ssim = []

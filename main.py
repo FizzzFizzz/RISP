@@ -16,11 +16,12 @@ import utils_logger
 import utils_deblur as deblur
 from argparse import ArgumentParser
 from algorithm import *
+from forward_model import *
 
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
 parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet and GSDRUNet are implemented")
-parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle")
+parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT")
 parser.add_argument('--n_channels', type=int, default=3, help = "number of channels of the image, by default RGB")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
@@ -43,6 +44,7 @@ parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the 
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
+parser.add_argument('--p', type=int, default=0.5, help = "Proportion of masked pixels for inpainting with random mask")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
 parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true')
@@ -57,29 +59,13 @@ n_channels = hparams.n_channels
 device = torch.device('cuda:'+str(hparams.gpu_number) if torch.cuda.is_available() else 'cpu')
 
 
-def gen_data(clean_image, sigma, kernel, seed=0):
-    """
-    Generate the degradate observation
-    """
-    fft_k = deblur.p2o(kernel, clean_image.shape[-2:])
-    temp = fft_k * deblur.fftn(clean_image)
-    observation_without_noise = torch.abs(deblur.ifftn(temp))
-
-    # For reproducibility
-    gen = torch.Generator()
-    gen.manual_seed(seed)
-    noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
-
-    observation = observation_without_noise + noise
-    return observation
-
-
 # Parameters setting
 denoiser_level = hparams.denoiser_level
 lamb = hparams.lamb
 sigma_obs = hparams.sigma_obs
 r = hparams.r
 B = hparams.B
+p = hparams.p
 theta = hparams.theta
 Nesterov = hparams.Nesterov
 momentum = hparams.momentum
@@ -94,7 +80,7 @@ Average_PSNR = 0
 
 # Set input image paths
 input_path = os.path.join('datasets', hparams.dataset_name)
-input_paths = os_sorted([os.path.join(input_path,p) for p in os.listdir(input_path)])
+input_paths = os_sorted([os.path.join(input_path, im_name) for im_name in os.listdir(input_path)])
 
 for i, clean_image_path in enumerate(input_paths):
     model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb)
@@ -103,27 +89,30 @@ for i, clean_image_path in enumerate(input_paths):
     model.to(device)
     model.net.to(device)
 
-    if '--kernel_index' in sys.argv:
-        k_index = hparams.kernel_index
-        kernel_path = os.path.join('utils/kernels', 'Levin09.mat')
-        kernels = hdf5storage.loadmat(kernel_path)['kernels']
-        # Kernels follow the order given in the paper (Table 2). The 8 first kernels are motion blur kernels, the 9th kernel is uniform and the 10th Gaussian.
-        if k_index == 8: # Uniform blur
-            kernel = (1/81)*np.ones((9,9))
-        elif k_index == 9:  # Gaussian blur
-            kernel = deblur.matlab_style_gauss2D(shape=(25,25),sigma=1.6)
-        else : # Motion blur
-            kernel = kernels[0, k_index]
-        kernel = torch.from_numpy(np.ascontiguousarray(kernel)).float().unsqueeze(0).unsqueeze(0)
-    else:
-        kernel_path = 'utils/kernels/'+hparams.kernel_name
-        kernel = util.imread_uint(kernel_path,1)
-        kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
-        kernel = kernel / torch.sum(kernel)
-
+    # Load the clean image
     clean_image = util.imread_uint(clean_image_path, 3)
     clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
-    observation = gen_data(clean_image, sigma_obs, kernel)
+
+    if Pb == "deblurring":
+        if '--kernel_index' in sys.argv:
+            k_index = hparams.kernel_index
+            kernel_path = os.path.join('utils/kernels', 'Levin09.mat')
+            kernels = hdf5storage.loadmat(kernel_path)['kernels']
+            # Kernels follow the order given in the paper (Table 2). The 8 first kernels are motion blur kernels, the 9th kernel is uniform and the 10th Gaussian.
+            if k_index == 8: # Uniform blur
+                kernel = (1/81)*np.ones((9,9))
+            elif k_index == 9:  # Gaussian blur
+                kernel = deblur.matlab_style_gauss2D(shape=(25,25),sigma=1.6)
+            else : # Motion blur
+                kernel = kernels[0, k_index]
+            kernel = torch.from_numpy(np.ascontiguousarray(kernel)).float().unsqueeze(0).unsqueeze(0)
+        else:
+            kernel_path = 'utils/kernels/'+hparams.kernel_name
+            kernel = util.imread_uint(kernel_path,1)
+            kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
+            kernel = kernel / torch.sum(kernel)
+
+    observation = gen_data(PnP, clean_image, sigma_obs, kernel)
 
     observation = observation.to(device)
     initial_uv = observation.clone()
@@ -141,7 +130,8 @@ for i, clean_image_path in enumerate(input_paths):
     if restarting_su or restarting_li:
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
-    savepth = 'results/'+hparams.dataset_name+"/"+alg+"_den_level_{}_lamb_{}".format(denoiser_level, lamb)
+    # Define the path for saving the experiment
+    savepth = 'results/'+Pb+'/'+hparams.dataset_name+"/"+alg+"/"
     os.makedirs(savepth, exist_ok = True)
     if '--sigma_obs' in sys.argv:
         savepth = os.path.join(savepth, 'sigma_obs_'+str(sigma_obs))
@@ -166,6 +156,10 @@ for i, clean_image_path in enumerate(input_paths):
     if restarting_li:
         savepth = os.path.join(savepth, "restarting_li")
         os.makedirs(savepth, exist_ok = True)
+    savepth = os.path.join(savepth, "den_level_{}".format(denoiser_level))
+    os.makedirs(savepth, exist_ok = True)
+    savepth = os.path.join(savepth, "lamb_{}".format(lamb))
+    os.makedirs(savepth, exist_ok = True)
     if '--B' in sys.argv:
         savepth = os.path.join(savepth, 'B_'+str(hparams.B))
         os.makedirs(savepth, exist_ok = True)
