@@ -18,7 +18,7 @@ import utils_sr
 from argparse import ArgumentParser
 from denoiser_model import *
 
-def gen_data(self, clean_image, sigma, kernel, seed=0):
+def gen_data(self, clean_image, sigma, seed=0):
     """
     Generate the degradate observation
     """
@@ -26,38 +26,38 @@ def gen_data(self, clean_image, sigma, kernel, seed=0):
     gen = torch.Generator()
     gen.manual_seed(seed)
     if self.Pb == "deblurring":
-        fft_k = deblur.p2o(kernel, clean_image.shape[-2:])
+        fft_k = deblur.p2o(self.kernel, clean_image.shape[-2:])
         temp = fft_k * deblur.fftn(clean_image)
         observation_without_noise = torch.abs(deblur.ifftn(temp))
         noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
-        observation = observation_without_noise + noise
+        return (observation_without_noise + noise).to(self.device)
     if self.Pb == "inpainting":
-        probs = torch.full(size=(clean_image.shape[0],clean_image.shape[1]), self.p) # tensor of the full of the proba p
-        mask = torch.bernoulli(probs, generator=gen).to(self.device)
-        self.mask = mask.unsqueeze(2)
-        observation_without_noise = clean_image*self.mask
-        noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
+        probs = torch.full((clean_image.shape[2],clean_image.shape[3]), self.p)
+        mask = torch.bernoulli(probs, generator=gen)
+        mask = mask.unsqueeze(0).unsqueeze(0).to(self.device)
+        observation_without_noise = clean_image*mask
+        noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
         observation = observation_without_noise + noise
-    return observation
+        return observation, mask
 
 
-def data_fidelity_init(self, kernel = None, mask = None, init = None):
+def data_fidelity_init(self, init = None):
     if self.Pb == 'deblurring':
         # Initialization of Gradient operator
-        fft_k = deblur.p2o(kernel, init.shape[-2:])
+        fft_k = deblur.p2o(self.kernel, init.shape[-2:])
         fft_kH = torch.conj(fft_k)
         abs_k = fft_kH * fft_k
         self.abs_k = abs_k
         self.fft_kH = fft_kH
         # Initialization of Proximal operator
-        self.k_tensor = torch.tensor(kernel).to(self.device)
+        self.k_tensor = torch.tensor(self.kernel).to(self.device)
         self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
     elif self.Pb == 'SR':
         # Initialization of Proximal operator
-        self.k_tensor = torch.tensor(kernel).to(self.device)
+        self.k_tensor = torch.tensor(self.kernel).to(self.device)
         self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
     elif self.Pb == 'inpainting':
-        self.M = array2tensor(mask).to(self.device)
+        self.M = (self.mask).clone()
     elif self.Pb == 'ODT':
         # print('ODT loves you~')
         from utils.inverse_scatter import InverseScatter
@@ -75,7 +75,7 @@ def compute_data_grad(self, x, obs):
         if self.Pb == 'deblurring':
             data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
             data_grad = torch.real(deblur.ifftn(data_grad))
-        elif self.hparams.degradation_mode == 'inpainting':
+        elif self.Pb == 'inpainting':
             data_grad = 2 * self.M * (x - obs)
         elif self.Pb == 'ODT':
             with torch.enable_grad():
@@ -102,7 +102,7 @@ def data_fidelity_prox_step(self, x, y, stepsize):
         if self.Pb == 'deblurring' or self.Pb == 'SR':
             px = utils_sr.prox_solution_L2(x, self.FB, self.FBC, self.F2B, self.FBFy, stepsize, self.sf)
         elif self.Pb == 'inpainting':
-            if self.hparams.noise_level_img > 1e-2:
+            if self.sigma_obs > 1e-2:
                 px = (stepsize*self.M*y + x)/(stepsize*self.M+1)
             else :
                 px = self.M*y + (1-self.M)*x

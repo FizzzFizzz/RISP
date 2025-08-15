@@ -21,7 +21,7 @@ from forward_model import *
 
 
 class PnP(nn.Module):
-    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', noise_model = "gaussian", sf = 1):
+    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', sigma_obs = 0, noise_model = "gaussian", sf = 1):
         '''
             nb_itr : number of iterations of the PnP algorithm
         '''
@@ -36,6 +36,7 @@ class PnP(nn.Module):
         else:
             raise ValueError("Denoiser not implemented.")
         self.Pb = Pb
+        self.sigma_obs = sigma_obs
         self.noise_model = noise_model
         self.sf = 1
         self.net = denoiser_net
@@ -59,13 +60,12 @@ class PnP(nn.Module):
         pre_i = torch.clamp(u, 0., 1.)
         self.res['image'][i] = ToPILImage()(pre_i[0])
 
-    def forward(self, initial_uv, obs, clean, kernel, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02, alg = "GD",adapative_restart = False,adapative_restart_factor = 0.5):
+    def forward(self, initial_uv, obs, clean, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02, alg = "GD",adapative_restart = False,adapative_restart_factor = 0.5):
         '''
             Computed the RED Algorithm with
                 initial_uv : the initialization for the algorithm
                 obs : the observation, degraded image
                 clean : the clean image to compute the metrics at each iterations
-                kernel : the kernel of blur
                 sigma_obs : the noise level of the observation
                 lamb : the regularization parameter, multiplicative factor in front of the data-fidelity
                 denoiser_sigma : the noise parameter of the denoiser
@@ -82,7 +82,7 @@ class PnP(nn.Module):
         '''
         # init
         u  = initial_uv
-        data_fidelity_init(self, kernel = kernel, init = initial_uv) # Initialize the data-fidelity operators
+        data_fidelity_init(self, init = initial_uv) # Initialize the data-fidelity operators
         self.nb_restart_activ = 0
 
         self.lamb = lamb
@@ -106,9 +106,14 @@ class PnP(nn.Module):
             x_old = x
             self.get_psnr_i(torch.clamp(out, min = -0., max =1.), clean, k)
 
+            if self.Pb == "inpainting" and k < 10:
+                sigma_den = 50. / 255.
+            else:
+                sigma_den = denoiser_sigma
+
             data_grad = compute_data_grad(self, y, obs)
             y = y.type(torch.cuda.FloatTensor)
-            y_denoised = self.net.forward(y, denoiser_sigma)
+            y_denoised = self.net.forward(y, sigma_den)
             reg_grad = y - y_denoised
 
             if alg == "GD":

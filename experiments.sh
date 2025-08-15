@@ -1,41 +1,49 @@
-for i in 0.21
+python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 2.0  --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring"
+
+python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.1 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring"
+
+for i in 0.01 0.1 0.2 0.3 0.9
 do
-    for j in 15.
-    do 
-        python main.py --gpu_number 0 --dataset_name "set5" --stepsize 5. --lamb $j --denoiser_level $i --alg "PGD" --sigma_obs 25. --nb_itr 500
-    done
+    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --restarting_li
+
+    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring"
+
+    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --restarting_li
+
+    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring"
 done
 
+# for i in 0.09 0.1 0.11
+# do
+#     for j in 13. 15. 18.
+#     do 
+#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 0.07 --momentum --theta 0.2 --lamb $j --denoiser_level $i --alg "GD" --Pb "deblurring"
+#     done
+# done
+
+# for i in 0.06 0.08 0.10
+# do
+#     for j in 3.
+#     do 
+#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 5. --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb $j --denoiser_level $i --alg "PGD" --Pb "inpainting"
+#     done
+# done
 
 
 
 
-"""
-for i in 0 1 2 3 4 5 6 7 
-do  
-    for j in 0.01 0.1 0.2 0.3 0.5 0.9
-    do
-        python main.py --kernel_index $i --dataset_name "CBSD10" --stepsize 0.1 --theta $j --momentum
-    done
-done
-"""
-
-"""
-for i in 0.01 0.1 0.2 0.3 0.4 0.6 0.9
-do
-    python main.py --alg 'PGD' --stepsize 2. --dataset_name "set5" --theta $i
-    for j in 200 2000 5000 10000 50000
-    do
-        python main.py --alg 'PGD' --stepsize 2. --dataset_name "set5" --theta $i --restarting_li --B $j
-    done
-done
-"""
+# for i in 0.09 0.1 0.11
+# do
+#     for j in 13.
+#     do 
+#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 0.1 --lamb $j --denoiser_level $i --alg "GD" --Pb "deblurring"
+#     done
+# done
 
 
-
-
+###
 # For ODT: 
-
+###
 
 
 # for i in  0.01 0.1 0.3   0.9   1.0

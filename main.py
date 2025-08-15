@@ -44,7 +44,7 @@ parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the 
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
-parser.add_argument('--p', type=int, default=0.5, help = "Proportion of masked pixels for inpainting with random mask")
+parser.add_argument('--p', type=float, default=0.5, help = "Proportion of viewed pixels for inpainting with random mask")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
 parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true')
@@ -65,7 +65,6 @@ lamb = hparams.lamb
 sigma_obs = hparams.sigma_obs
 r = hparams.r
 B = hparams.B
-p = hparams.p
 theta = hparams.theta
 Nesterov = hparams.Nesterov
 momentum = hparams.momentum
@@ -83,7 +82,7 @@ input_path = os.path.join('datasets', hparams.dataset_name)
 input_paths = os_sorted([os.path.join(input_path, im_name) for im_name in os.listdir(input_path)])
 
 for i, clean_image_path in enumerate(input_paths):
-    model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb)
+    model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb, sigma_obs = sigma_obs)
     model.eval()
     model.net.eval()
     model.to(device)
@@ -111,17 +110,22 @@ for i, clean_image_path in enumerate(input_paths):
             kernel = util.imread_uint(kernel_path,1)
             kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
             kernel = kernel / torch.sum(kernel)
+        model.kernel = kernel
+        observation = gen_data(model, clean_image, sigma_obs)
+        model.kernel = model.kernel.to(device)
+        clean_image = clean_image.to(device)
+        initial_uv = observation.clone()
 
-    observation = gen_data(PnP, clean_image, sigma_obs, kernel)
+    elif Pb == "inpainting":
+        model.p = hparams.p
+        clean_image = clean_image.to(device)
+        observation, mask = gen_data(model, clean_image, sigma_obs)
+        model.mask = mask
+        initial_uv = mask*observation.clone() + 0.5 * (1 - mask)
 
-    observation = observation.to(device)
-    initial_uv = observation.clone()
-    clean_image = clean_image.to(device)
-    kernel = kernel.to(device)
-
-    # Run RED algorithm with or without Nesterov momentum
+    # Run RED algorithm with or without momentum
     with torch.no_grad():
-        model(initial_uv, observation, clean_image, kernel, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
+        model.forward(initial_uv, observation, clean_image, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
 
     psnr_list = model.res['psnr']
     ssim_list = model.res['ssim']
@@ -131,7 +135,11 @@ for i, clean_image_path in enumerate(input_paths):
         print("Number of restarting activation = {}".format(model.nb_restart_activ))
     
     # Define the path for saving the experiment
-    savepth = 'results/'+Pb+'/'+hparams.dataset_name+"/"+alg+"/"
+    savepth = 'results/'+Pb+'/'+hparams.dataset_name
+    if '--p' in sys.argv:
+        savepth = os.path.join(savepth, 'p_'+str(model.p))
+        os.makedirs(savepth, exist_ok = True)
+    savepth = savepth + "/" + alg + "/"
     os.makedirs(savepth, exist_ok = True)
     if '--sigma_obs' in sys.argv:
         savepth = os.path.join(savepth, 'sigma_obs_'+str(sigma_obs))
@@ -201,7 +209,6 @@ for i, clean_image_path in enumerate(input_paths):
             'clean_image' : util.tensor2uint(clean_image),
             'observation' : util.tensor2uint(observation),
             'initial_uv' : initial_uv,
-            'kernel' : util.tensor2uint(kernel),
             'sigma_obs' : sigma_obs,
             'lamb' : lamb,
             'denoiser_level' : denoiser_level,
@@ -210,7 +217,6 @@ for i, clean_image_path in enumerate(input_paths):
             'restarting_su' : restarting_su,
             'stack_images' : model.res['image'],
             'clean_image_path' : clean_image_path,
-            'kernel_path' : kernel_path,
             'psnr_list' : psnr_list,
             'ssim_list' : ssim_list,
             'psnr_restored' : psnr_list[-1],
@@ -218,6 +224,14 @@ for i, clean_image_path in enumerate(input_paths):
             'restored' : model.res['image'][-1],
             'nb_restart_activ' : model.nb_restart_activ,
         }
+    
+    if Pb == "deblurring":
+        dict['kernel'] = util.tensor2uint(kernel)
+        dict['kernel_path'] = kernel_path
+    
+    if Pb == "inpainting":
+        dict['p'] = model.p
+        dict['mask'] = mask
     
     np.save(savepth+"/dict_results_{}".format(i), dict)
 

@@ -395,17 +395,36 @@ if pars.fig_number == 6:
     plt.show()
 
 if pars.table_number == 0:
-    #generate the result of deblurring for parameters tunning for PGD without momentum
+    #generate the result of inpainting for parameters tunning for PGD without momentum
 
-    path_result = "results/set5/"
+    path_result = "results/inpainting/set5/p_0.2/"
 
-    for sigma in [0.21]: #[0.15, 0.17, 0.19, 0.2, 0.21]
-        for lamb in [15., 17., 20.]: # [17., 20., 23.]
+    for sigma in [0.08]:
+        for lamb in [1., 3., 5., 10., 15.]:
             n = 5
             output_psnr = []
             output_ssim = []
             for i in range(n):
-                dic_Diff = np.load(path_result + "PGD_den_level_{}_lamb_{}/sigma_obs_25.0/nb_itr_500/stepsize_1.0/dict_results_{}.npy".format(sigma, lamb, i), allow_pickle=True).item()
+                dic_Diff = np.load(path_result + "PGD/sigma_obs_1.0/den_level_{}/lamb_{}/nb_itr_500/stepsize_5.0/dict_results_{}.npy".format(sigma, lamb, i), allow_pickle=True).item()
+                output_psnr.append(dic_Diff["psnr_restored"])
+                output_ssim.append(dic_Diff["ssim_restored"])
+
+            output_psnr = np.array(output_psnr)
+            output_ssim = np.array(output_ssim)
+            print("Sigma = {}, Lambda = {}".format(sigma, lamb), "PSNR/SSIM : {:.2f} & {:.2f}".format(np.mean(output_psnr),np.mean(output_ssim)))
+
+if pars.table_number == 1:
+    #generate the result of deblurring for parameters tunning for PGD/GD without momentum
+
+    path_result = "results/deblurring/set5/"
+
+    for sigma in [0.09, 0.1, 0.11]:
+        for lamb in [13., 15., 18.]:
+            n = 5
+            output_psnr = []
+            output_ssim = []
+            for i in range(n):
+                dic_Diff = np.load(path_result + "GD/Momentum/theta_0.2/den_level_{}/lamb_{}/stepsize_0.07/dict_results_{}.npy".format(sigma, lamb, i), allow_pickle=True).item()
                 output_psnr.append(dic_Diff["psnr_restored"])
                 output_ssim.append(dic_Diff["ssim_restored"])
 
