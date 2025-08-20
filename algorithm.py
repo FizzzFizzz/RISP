@@ -33,6 +33,9 @@ class PnP(nn.Module):
         elif denoiser_name == "GSDRUNet":
             # The pretrained GSDRNet weights can be download in : https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt
             denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet.ckpt", device = device)
+        elif denoiser_name == "GSDRUNet_SoftPlus":
+            # The pretrained GSDRNet weights can be download in : https://plmbox.math.cnrs.fr/f/414fbb3e754840978ef8/?dl=1
+            denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet_SoftPlus.ckpt", act_mode = "s", device = device)
         else:
             raise ValueError("Denoiser not implemented.")
         self.Pb = Pb

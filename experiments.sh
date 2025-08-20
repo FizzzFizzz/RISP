@@ -1,17 +1,42 @@
-python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 2.0  --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring"
-
-python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.1 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring"
-
-for i in 0.01 0.1 0.2 0.3 0.9
+for k in 0 1 2 3 4 5 6 7 8 9
 do
-    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --restarting_li
-
-    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring"
-
-    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --restarting_li
-
-    python main.py --gpu_number 0 --dataset_name "CBSD68" --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring"
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 2.0  --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --kernel_index $k
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 0.1 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --kernel_index $k
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --restarting_li --kernel_index $k
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --kernel_index $k
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --restarting_li --kernel_index $k
+    python main.py --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --kernel_index $k
 done
+
+
+
+# python main.py --gpu_number 0 --dataset_name "CBSD68" --momentum --theta 0.2 --restarting_li --stepsize 0.1 --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb 5.0 --denoiser_level 0.08 --alg "GD" --Pb "inpainting"
+# python main.py --gpu_number 0 --dataset_name "CBSD68" --momentum --theta 0.2 --stepsize 5.0 --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb 5.0 --denoiser_level 0.08 --alg "PGD" --Pb "inpainting"
+# python main.py --gpu_number 0 --dataset_name "CBSD68" --momentum --theta 0.2 --restarting_li --stepsize 5.0 --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb 5.0 --denoiser_level 0.08 --alg "PGD" --Pb "inpainting"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # for i in 0.09 0.1 0.11
 # do
@@ -21,13 +46,7 @@ done
 #     done
 # done
 
-# for i in 0.06 0.08 0.10
-# do
-#     for j in 3.
-#     do 
-#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 5. --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb $j --denoiser_level $i --alg "PGD" --Pb "inpainting"
-#     done
-# done
+
 
 
 
