@@ -44,6 +44,7 @@ parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the 
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
+parser.add_argument('--start_im_indx', type=int, default=0, help = "Rank of the image to start from in the dataset")
 parser.add_argument('--p', type=float, default=0.5, help = "Proportion of viewed pixels for inpainting with random mask")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
@@ -81,7 +82,8 @@ Average_PSNR = 0
 input_path = os.path.join('datasets', hparams.dataset_name)
 input_paths = os_sorted([os.path.join(input_path, im_name) for im_name in os.listdir(input_path)])
 
-for i, clean_image_path in enumerate(input_paths):
+for i in range(hparams.start_im_indx, len(input_paths)):
+    clean_image_path = input_paths[i]
     model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb, sigma_obs = sigma_obs)
     model.eval()
     model.net.eval()
