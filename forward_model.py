@@ -31,7 +31,7 @@ def gen_data(self, clean_image, sigma, seed=0):
         observation_without_noise = torch.abs(deblur.ifftn(temp))
         noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
         return (observation_without_noise + noise).to(self.device)
-    if self.Pb == "inpainting":
+    elif self.Pb == "inpainting":
         probs = torch.full((clean_image.shape[2],clean_image.shape[3]), self.p)
         mask = torch.bernoulli(probs, generator=gen)
         mask = mask.unsqueeze(0).unsqueeze(0).to(self.device)
@@ -39,6 +39,14 @@ def gen_data(self, clean_image, sigma, seed=0):
         noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
         observation = observation_without_noise + noise
         return observation, mask
+    elif self.Pb == "MRI":
+        M = genMask(init.shape[-2:], self.numLines, device=self.device)
+        observation_without_noise = M[None,None,:,:] * torch.fft.fft2(clean_image)
+        noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
+        observation = observation_without_noise + noise
+        return observation, M
+    else:
+        raise ValueError("Forward Model not implemented")
 
 
 def data_fidelity_init(self, init = None):
@@ -58,6 +66,8 @@ def data_fidelity_init(self, init = None):
         self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
     elif self.Pb == 'inpainting':
         self.M = (self.mask).clone()
+    elif self.Pb == "MRI":
+        self.neg_M = torch.ones(self.M.shape).to(device) - self.M
     elif self.Pb == 'ODT':
         # print('ODT loves you~')
         from utils.inverse_scatter import InverseScatter
@@ -77,6 +87,8 @@ def compute_data_grad(self, x, obs):
             data_grad = torch.real(deblur.ifftn(data_grad))
         elif self.Pb == 'inpainting':
             data_grad = 2 * self.M * (x - obs)
+        elif self.Pb == 'MRI':
+            data_grad = torch.fft.ifft2(self.M * (torch.fft.fft2(x) - y))
         elif self.Pb == 'ODT':
             with torch.enable_grad():
                 v = x.clone() 
@@ -106,6 +118,8 @@ def data_fidelity_prox_step(self, x, y, stepsize):
                 px = (stepsize*self.M*y + x)/(stepsize*self.M+1)
             else :
                 px = self.M*y + (1-self.M)*x
+        elif self.Pb = 'MRI':
+            px = torch.fft.ifft2(((1/(1+self.stepsize))*self.M+self.neg_M)*(torch.fft.fft2(x)+self.stepsize*self.M*y))
         elif self.Pb == 'ODT':
             input = x
             uu = input.clone()
@@ -131,3 +145,49 @@ def data_fidelity_prox_step(self, x, y, stepsize):
         ValueError('Forward Model noise model not implemented')
     return px
 
+
+def genMask(imgSize, numLines, device='cpu'):
+    """
+    Generate a mask for MRI reconstruction in torch
+    
+    Args:
+        imgSize (tuple): (high, width) of the image; need to be a multiple of 2
+        numLines (int): number of ligne to draw
+        device (str): 'cpu' or 'cuda'
+    
+    Returns:
+        torch.BoolTensor: binary mask of size imgSize
+    """
+    H, W = imgSize
+    if H % 2 != 0 or W % 2 != 0:
+        raise ValueError("image must be even sized!")
+    
+    center = torch.tensor([H/2 + 1, W/2 + 1], device=device)
+    freqMax = np.ceil(np.sqrt((H/2)**2 + (W/2)**2))
+    
+    # angles of the lines
+    ang = torch.linspace(0, np.pi, steps=numLines+1, device=device)[:-1]  # we remove the last one to avoid multiples
+    
+    mask = torch.zeros(imgSize, dtype=torch.bool, device=device)
+    
+    # relative coordonates
+    offsets = torch.arange(-freqMax, freqMax+1, device=device)
+    
+    for theta in ang:
+        cos_t, sin_t = torch.cos(theta), torch.sin(theta)
+        # Float coordonnates
+        ix = center[1] + offsets * cos_t
+        iy = center[0] + offsets * sin_t
+        
+        # Integer coordonates
+        ix = torch.floor(ix + 0.5).long()
+        iy = torch.floor(iy + 0.5).long()
+        
+        # Filter to keep the valid indexes
+        valid = (ix >= 1) & (ix <= W) & (iy >= 1) & (iy <= H)
+        ix = ix[valid] - 1  # to go to the 1-based index
+        iy = iy[valid] - 1
+        
+        mask[iy, ix] = True
+    
+    return mask

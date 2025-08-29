@@ -46,6 +46,7 @@ parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iteratio
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
 parser.add_argument('--start_im_indx', type=int, default=0, help = "Rank of the image to start from in the dataset")
 parser.add_argument('--p', type=float, default=0.5, help = "Proportion of viewed pixels for inpainting with random mask")
+parser.add_argument('--reduction_factor', type=int, default=8, help = "Factor of acceleration for MRI")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
 parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true')
@@ -125,6 +126,12 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         model.mask = mask
         initial_uv = mask*observation.clone() + 0.5 * (1 - mask)
 
+    elif Pb == "MRI":
+        clean_image = clean_image.to(device)
+        model.numLines = int(clean_image.shape[-1] / hparams.reduction_factor)
+        observation, mask = gen_data(model, clean_image, sigma_obs)
+        model.M = mask
+
     # Run RED algorithm with or without momentum
     with torch.no_grad():
         model.forward(initial_uv, observation, clean_image, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
@@ -151,6 +158,9 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         os.makedirs(savepth, exist_ok = True)
     if '--kernel_index' in sys.argv:
         savepth = os.path.join(savepth, 'kernel_'+str(k_index))
+        os.makedirs(savepth, exist_ok = True)
+    if '--reduction_factor' in sys.argv:
+        savepth = os.path.join(savepth, 'reduction_factor_'+str(hparams.reduction_factor))
         os.makedirs(savepth, exist_ok = True)
     if Nesterov:
         savepth = savepth + "/Nesterov"
@@ -234,6 +244,10 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     if Pb == "inpainting":
         dict['p'] = model.p
         dict['mask'] = mask
+    
+    if Pb == "MRI":
+        dict['reduction_factor'] = hparams.reduction_factor
+        dict['numLines'] = model.numLines
     
     np.save(savepth+"/dict_results_{}".format(i), dict)
 
