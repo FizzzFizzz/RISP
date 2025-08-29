@@ -28,6 +28,8 @@ parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
 parser.set_defaults(Nesterov=False)
 parser.add_argument('--momentum', dest='momentum', action='store_true')
 parser.set_defaults(momentum=False)
+parser.add_argument('--grayscale', dest='grayscale', action='store_true')
+parser.set_defaults(grayscale=False)
 parser.add_argument('--restarting_su', dest='restarting_su', action='store_true')
 parser.set_defaults(restarting_su=False)
 parser.add_argument('--restarting_li', dest='restarting_li', action='store_true')
@@ -70,6 +72,7 @@ B = hparams.B
 theta = hparams.theta
 Nesterov = hparams.Nesterov
 momentum = hparams.momentum
+grayscale = hparams.grayscale
 restarting_su = hparams.restarting_su
 restarting_li = hparams.restarting_li
 stepsize = hparams.stepsize

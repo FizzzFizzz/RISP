@@ -4,6 +4,9 @@ If you want to test it on your own, it would be beneficial if you are familiar w
 
 You can download the weights of the DRUNet architecture learn on color images in the following [link](https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true).
 
+The weights for GSDRUNet in grayscale can be download in the [link](https://huggingface.co/deepinv/gradientstep/resolve/main/GSDRUNet_grayscale_torch.ckpt) and in color in this [link](https://huggingface.co/deepinv/gradientstep/resolve/main/GSDRUNet.ckpt)
+
+The weights for the GSDRUNet with SoftPlus activations functions for color images can be download in this [link](https://plmbox.math.cnrs.fr/f/414fbb3e754840978ef8/?dl=1)
 
 To test: How to test PnP with momentum ?
 ----
