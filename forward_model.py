@@ -148,7 +148,8 @@ def data_fidelity_prox_step(self, x, y, stepsize):
 
 def genMask(imgSize, numLines, device='cpu'):
     """
-    Generate a mask for MRI reconstruction in torch
+    Generate a mask for MRI reconstruction in torch.
+    It is a translation in torch of the code proposed in https://github.com/wustl-cig/bcred/tree/master
     
     Args:
         imgSize (tuple): (high, width) of the image; need to be a multiple of 2
