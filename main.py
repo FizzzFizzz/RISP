@@ -9,7 +9,6 @@ from tqdm import tqdm
 import os
 from natsort import os_sorted
 import sys 
-# sys.path.append("..")
 sys.path.append("utils/")
 import utils_image as util
 import utils_logger
@@ -18,6 +17,7 @@ from argparse import ArgumentParser
 from algorithm import *
 from forward_model import *
 from time import time
+from utils.inverse_scatter import InverseScatter # for ODT
 
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
@@ -35,6 +35,12 @@ parser.set_defaults(restarting_su=False)
 parser.add_argument('--restarting_li', dest='restarting_li', action='store_true')
 parser.set_defaults(restarting_li=False)
 parser.add_argument('--alg', type=str, default="GD", help = "type of step on the data-fidelity, if alg = 'GD' it is a graident step on the data-fidelity, if alg = 'PGD' it is a proximal step on the data-fidelity")
+parser.add_argument('--ODT_Lxy', type=float, default=0.18, help = "ODT Lx and Ly")
+parser.add_argument('--ODT_Nxy', type=int, default=128, help = "ODT image size")
+parser.add_argument('--ODT_wave', type=int, default=6, help = "ODT wave")
+parser.add_argument('--ODT_Rec', type=int, default=180, help = "ODT reciever number")
+parser.add_argument('--ODT_Trans', type=int, default=20, help = "ODT transmitters number")
+parser.add_argument('--ODT_sensorRadius', type=float, default=1.6, help = "ODT sensor radius")
 parser.add_argument('--r', type=int, default=3, help = "Parameter for the Generalized Nesterov momentum")
 parser.add_argument('--B', type=float, default=5000., help = "Parameter restarting criterion proposed by Li")
 parser.add_argument('--lamb', type=float, default=18, help = "Regularization parameter")
@@ -83,6 +89,14 @@ save_each_itr = hparams.save_each_itr
 alg = hparams.alg
 Average_PSNR = 0
 L = hparams.L
+Lx = hparams.ODT_Lxy
+Ly = hparams.ODT_Lxy
+Nx = hparams.ODT_Nxy
+Ny = hparams.ODT_Nxy
+wave = hparams.ODT_wave
+numRec= hparams.ODT_Rec
+numTrans= hparams.ODT_Trans
+sensorRadius = hparams.ODT_sensorRadius
 
 # Set input image paths
 input_path = os.path.join('datasets', hparams.dataset_name)
@@ -103,7 +117,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     else:
         clean_image = util.imread_uint(clean_image_path, 1)
         clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
-
+    clean_image = clean_image.to(device)
     if Pb == "deblurring":
         if '--kernel_index' in sys.argv:
             k_index = hparams.kernel_index
@@ -122,39 +136,58 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             kernel = util.imread_uint(kernel_path,1)
             kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
             kernel = kernel / torch.sum(kernel)
-        model.kernel = kernel
+        model.kernel = kernel.to(device)
         observation = gen_data(model, clean_image, sigma_obs)
-        model.kernel = model.kernel.to(device)
-        clean_image = clean_image.to(device)
         initial_uv = observation.clone()
 
     elif Pb == "inpainting":
         model.p = hparams.p
-        clean_image = clean_image.to(device)
         observation, mask = gen_data(model, clean_image, sigma_obs)
         model.mask = mask
         initial_uv = mask*observation.clone() + 0.5 * (1 - mask)
 
     elif Pb == "MRI":
-        clean_image = clean_image.to(device)
         model.numLines = int(clean_image.shape[-1] / hparams.reduction_factor)
         observation, mask, pseudo_inverse = gen_data(model, clean_image, sigma_obs)
         model.M = mask
         initial_uv = pseudo_inverse
 
     elif Pb == "speckle":
-        clean_image = clean_image.to(device)
         model.noise_model = "speckle"
         model.L = L
         observation = gen_data(model, clean_image)
         initial_uv = observation
+    
+    elif Pb == "ODT":
+        scatter_op = InverseScatter(
+            Lx=Lx, Ly=Ly, Nx=Nx, Ny=Ny, 
+            wave=wave, numRec=numRec, numTrans=numTrans,
+            sensorRadius=sensorRadius, svd=False
+        )
+        observation = scatter_op.forward(clean_image, unnormalize=False)
+        observation = observation + 0.0001*torch.randn(observation.size()).to(device)
+        observation = observation.to(device)
+        # Estimate the back propagation of the observation for the initialisation
+        initial_uv = 0*clean_image
+        v = initial_uv.clone()
+        u = initial_uv.clone()
+        with torch.enable_grad():
+            for ii in range(2000):
+                v = u.clone()
+                v.requires_grad_()
+                t = v
+                t = t.type(torch.cuda.FloatTensor)
+                uscat_pred = scatter_op.forward(t, unnormalize=False)
+                norm = torch.sum(torch.abs(uscat_pred - observation)**2)
+                norm_grad = torch.autograd.grad(outputs=norm, inputs=v)[0]
+                u = u - 1*norm_grad
+        initial_uv = u
+        
 
     time_restore = time()
-
-    # Run RED algorithm with or without momentum
+    # Run the restoration algorithm (with or without momentum)
     with torch.no_grad():
         model.forward(initial_uv, observation, clean_image, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
-
     time_restore = time() - time_restore
     print("The time of restoration is : ", time_restore)
 

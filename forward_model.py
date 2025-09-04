@@ -44,7 +44,7 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = M[None,None,:,:] * fft2c(clean_image)
         noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
         observation = observation_without_noise + noise
-        pseudo_inverse = torch.real(ifft2c(mask*observation.clone()))
+        pseudo_inverse = torch.real(ifft2c(M*observation.clone()))
         return observation, M, pseudo_inverse
     elif self.Pb == "speckle":
         observation = injectspeckle_amplitude_log(clean_image, L = self.L, device = self.device, gen = gen)

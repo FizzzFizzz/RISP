@@ -82,21 +82,21 @@ device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 
 
 
-def gen_data(clean_image, sigma, kernel, seed=0):
-    """
-    Generate the degradate observation
-    """
-    fft_k = deblur.p2o(kernel, clean_image.shape[-2:])
-    temp = fft_k * deblur.fftn(clean_image)
-    observation_without_noise = torch.abs(deblur.ifftn(temp))
+# def gen_data(clean_image, sigma, kernel, seed=0):
+#     """
+#     Generate the degradate observation
+#     """
+#     fft_k = deblur.p2o(kernel, clean_image.shape[-2:])
+#     temp = fft_k * deblur.fftn(clean_image)
+#     observation_without_noise = torch.abs(deblur.ifftn(temp))
 
-    # For reproducibility
-    gen = torch.Generator()
-    gen.manual_seed(seed)
-    noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
+#     # For reproducibility
+#     gen = torch.Generator()
+#     gen.manual_seed(seed)
+#     noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
 
-    observation = observation_without_noise + noise
-    return observation
+#     observation = observation_without_noise + noise
+#     return observation
 
 
 # Parameters setting

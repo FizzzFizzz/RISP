@@ -942,15 +942,15 @@ if pars.table_number == 2:
 
 if pars.table_number == 3:
     #generate the result of the grid-search for speckle L = 10
-    path_result = "results/speckle/setSAR4/GD/denoiser_name_GSDRUNet_grayscale/L_10/"
-    lamb_list = ["80.0", "100.0", "150.0", "200.0"]
-    sigma_list = ["0.15", "0.2", "0.25", "0.3"]
+    path_result = "results/MRI/MRI4knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_4/"
+    lamb_list = ["0.1", "0.5", "1.", "5.", "10."]
+    sigma_list = ["0.01", "0.02", "0.03", "0.04", "0.05"]
     n = 4
     for std in sigma_list:
         for lamb in lamb_list:
             output_psnr = []
             for j in range(n):
-                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/stepsize_0.001/dict_results_"+str(j)+".npy", allow_pickle=True).item()
+                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/stepsize_1.0/dict_results_"+str(j)+".npy", allow_pickle=True).item()
                 output_psnr.append(dic_RED["psnr_restored"])
             print("Sigma ",std,"Lambda ",lamb, ":", np.mean(output_psnr))
 
