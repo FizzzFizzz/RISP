@@ -17,12 +17,12 @@ import utils_deblur as deblur
 from argparse import ArgumentParser
 from algorithm import *
 from forward_model import *
+from time import time
 
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
 parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet, GSDRUNet or GSDRUNet_SoftPlus are implemented")
 parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT")
-parser.add_argument('--n_channels', type=int, default=3, help = "number of channels of the image, by default RGB")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
 parser.set_defaults(Nesterov=False)
@@ -48,6 +48,7 @@ parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iteratio
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
 parser.add_argument('--start_im_indx', type=int, default=0, help = "Rank of the image to start from in the dataset")
 parser.add_argument('--p', type=float, default=0.5, help = "Proportion of viewed pixels for inpainting with random mask")
+parser.add_argument('--L', type=int, default=10, help = "Number of looks for image depseckling")
 parser.add_argument('--reduction_factor', type=int, default=8, help = "Factor of acceleration for MRI")
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
@@ -59,9 +60,8 @@ Pb = hparams.Pb
 denoiser_name = hparams.denoiser_name
 model_path = hparams.model_path
 nb_itr = hparams.nb_itr
-n_channels = hparams.n_channels
+# n_channels = hparams.n_channels
 device = torch.device('cuda:'+str(hparams.gpu_number) if torch.cuda.is_available() else 'cpu')
-
 
 # Parameters setting
 denoiser_level = hparams.denoiser_level
@@ -73,14 +73,16 @@ theta = hparams.theta
 Nesterov = hparams.Nesterov
 momentum = hparams.momentum
 grayscale = hparams.grayscale
+if Pb == 'MRI' and not('--grayscale' in sys.argv):
+    grayscale = True
 restarting_su = hparams.restarting_su
 restarting_li = hparams.restarting_li
 stepsize = hparams.stepsize
 dont_save_images = hparams.dont_save_images
 save_each_itr = hparams.save_each_itr
 alg = hparams.alg
-
 Average_PSNR = 0
+L = hparams.L
 
 # Set input image paths
 input_path = os.path.join('datasets', hparams.dataset_name)
@@ -95,8 +97,12 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     model.net.to(device)
 
     # Load the clean image
-    clean_image = util.imread_uint(clean_image_path, 3)
-    clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
+    if not(grayscale):
+        clean_image = util.imread_uint(clean_image_path, 3)
+        clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
+    else:
+        clean_image = util.imread_uint(clean_image_path, 1)
+        clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
 
     if Pb == "deblurring":
         if '--kernel_index' in sys.argv:
@@ -132,12 +138,25 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     elif Pb == "MRI":
         clean_image = clean_image.to(device)
         model.numLines = int(clean_image.shape[-1] / hparams.reduction_factor)
-        observation, mask = gen_data(model, clean_image, sigma_obs)
+        observation, mask, pseudo_inverse = gen_data(model, clean_image, sigma_obs)
         model.M = mask
+        initial_uv = pseudo_inverse
+
+    elif Pb == "speckle":
+        clean_image = clean_image.to(device)
+        model.noise_model = "speckle"
+        model.L = L
+        observation = gen_data(model, clean_image)
+        initial_uv = observation
+
+    time_restore = time()
 
     # Run RED algorithm with or without momentum
     with torch.no_grad():
         model.forward(initial_uv, observation, clean_image, sigma_obs, lamb, denoiser_level, theta, r, B, Nesterov, momentum, restarting_su, restarting_li, stepsize, alg)
+
+    time_restore = time() - time_restore
+    print("The time of restoration is : ", time_restore)
 
     psnr_list = model.res['psnr']
     ssim_list = model.res['ssim']
@@ -161,6 +180,9 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         os.makedirs(savepth, exist_ok = True)
     if '--kernel_index' in sys.argv:
         savepth = os.path.join(savepth, 'kernel_'+str(k_index))
+        os.makedirs(savepth, exist_ok = True)
+    if '--L' in sys.argv:
+        savepth = os.path.join(savepth, 'L_'+str(L))
         os.makedirs(savepth, exist_ok = True)
     if '--reduction_factor' in sys.argv:
         savepth = os.path.join(savepth, 'reduction_factor_'+str(hparams.reduction_factor))
@@ -196,6 +218,10 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     print("Results are saved in the path : ", savepth)
 
     if not(dont_save_images):
+        if grayscale :
+            colormap = 'gray'
+        else:
+            colormap = 'viridis'
         if save_each_itr:
             savepth_img = savepth+"/set_img_{}/".format(i)
             os.makedirs(savepth_img, exist_ok = True)
@@ -205,8 +231,8 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         model.res['image'][-1].save(savepth + "/{}_restored_img.png".format(i))
         clean_img_uint = util.tensor2uint(clean_image)
         obs_uint = util.tensor2uint(observation)
-        plt.imsave(savepth + "/{}_clean_img.png".format(i), clean_img_uint)
-        plt.imsave(savepth + "/{}_observation.png".format(i), obs_uint)
+        plt.imsave(savepth + "/{}_clean_img.png".format(i), clean_img_uint, cmap = colormap)
+        plt.imsave(savepth + "/{}_observation.png".format(i), obs_uint, cmap = colormap)
 
         itr_list = range(len(psnr_list))
         plt.clf()
@@ -238,6 +264,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             'ssim_restored' : ssim_list[-1],
             'restored' : model.res['image'][-1],
             'nb_restart_activ' : model.nb_restart_activ,
+            'grayscale' : grayscale,
         }
     
     if Pb == "deblurring":

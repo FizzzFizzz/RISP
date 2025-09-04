@@ -157,6 +157,8 @@ if pars.fig_number == 2:
     method_name = dic['method_name']
     residuals = dic['residuals']
 
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    color_indx = [3, 1, 2, 0]
     fig = plt.figure()
 
     for j in range(nb_method):
@@ -165,18 +167,18 @@ if pars.fig_number == 2:
         psnr_std = np.std(psnr_list[j], axis = 0)
         psnr_min = np.quantile(psnr_list[j], 0.25, axis = 0)
         psnr_max = np.quantile(psnr_list[j], 0.75, axis = 0)
-        line, = plt.plot(np.arange(len(psnr_mean[:convergence_time+5])), psnr_mean[:convergence_time+5], label = method_name[j])
+        line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = method_name[j], color = colors[color_indx[j]])
         # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
 
     size_number = 15
 
-    plt.plot([0, 50], [27.7, 27.7], linestyle = "--", color = 'gray')
+    # plt.plot([0, 50], [27.7, 27.7], linestyle = "--", color = 'gray')
 
     plt.xlim(0,49)
     plt.xticks([0, 9, 20, 38, 49], ["0", "9", "20", "38", "50"], fontsize = size_number)
-    plt.ylim(18,28)
-    plt.yticks([18, 27.7], ["18", "27.7"], fontsize = size_number)
-    plt.legend()
+    plt.ylim(18,29)
+    plt.yticks([18, 29], ["18", "29"], fontsize = size_number)
+    # plt.legend()
     plt.title(r"Convergence PSNR for deblurring")
     fig.savefig(path_figure+'convergence_PSNR_deblurring.png', dpi = 300)
     plt.show()
@@ -188,7 +190,7 @@ if pars.fig_number == 2:
         residuals_mean = np.mean(np.log10(residuals[j]), axis = 0)
         residuals_min = np.quantile(np.log10(residuals[j]), 0.25, axis = 0)
         residuals_max = np.quantile(np.log10(residuals[j]), 0.75, axis = 0)
-        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j])
+        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
         plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
     plt.xlim(0,49)
@@ -201,7 +203,7 @@ if pars.fig_number == 2:
     plt.yticks(ticks, labels, fontsize = size_number)
     plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
 
-    plt.legend()
+    # plt.legend()
     plt.title(r"Convergence residuals for deblurring")
     fig.savefig(path_figure+'convergence_residuals_deblurring.png', dpi = 300)
     plt.show()
@@ -288,7 +290,7 @@ if pars.fig_number == 4:
     # Generate a figure to show various result on image deblurring with various kernels
     path_result = "results/deblurring/CBSD10/"
 
-    n = 5
+    n = 7
     m = 6
 
     size_title = 40
@@ -312,7 +314,7 @@ if pars.fig_number == 4:
         ProxRED = (np.array(dic_ProxRED["restored"]).astype(np.uint8), dic_ProxRED["psnr_restored"], dic_ProxRED["ssim_restored"])
         ProxRiRED = (np.array(dic_ProxRiRED["restored"]).astype(np.uint8), dic_ProxRiRED["psnr_restored"], dic_ProxRiRED["ssim_restored"])
         GT = np.array(dic_RED["clean_image"]).astype(np.uint8)
-        k = dic_RED["kernel"]
+        kern = dic_RED["kernel"]
         obs = np.array(dic_RED["observation"]); gt = np.array(dic_RED["clean_image"])
         Obs = (obs.astype(np.uint8), PSNR(obs, gt), ssim(obs, gt, channel_axis = -1))
 
@@ -376,15 +378,18 @@ if pars.fig_number == 4:
 
         for j, im in enumerate(im_list):
             ax = plt.subplot(gs[i, 1+j])
+            # Add the kernel on the image
             if j==0:
                 c = 100
                 if i == 6:
                     big_kernel = np.zeros((17,17))
-                    big_kernel[4:13, 4:13] = k
+                    big_kernel[4:13, 4:13] = kern
                     k_resize = cv2.resize(big_kernel, dsize =(c,c), interpolation=cv2.INTER_NEAREST)
                 else:
-                    k_resize = cv2.resize(k, dsize =(c,c), interpolation=cv2.INTER_NEAREST)
-                im[0][-k_resize.shape[0]:,:k_resize.shape[1]] = k_resize[:,:,None]*np.ones(3)[None,None,:] / np.max(k_resize)
+                    k_resize = cv2.resize(kern, dsize =(c,c), interpolation=cv2.INTER_NEAREST)
+                k_resize = (k_resize - np.min(k_resize)) / (np.max(k_resize) - np.min(k_resize))
+                k_resize = (255 * k_resize).astype(np.uint8)
+                im[0][-k_resize.shape[0]:,:k_resize.shape[1]] = k_resize[:,:,None]*np.ones(3)[None,None,:]
             
             #add a zoom of the image
             patch_c = cv2.resize(im[0][y_c:y_c+hei, x_c:x_c+wid], dsize =(c_patch,c_patch), interpolation=cv2.INTER_CUBIC)
@@ -586,7 +591,27 @@ if pars.fig_number == 6:
     plt.show()
 
 
-
+if pars.fig_number == 7:
+    path_result = "results/deblurring/CBSD10/"
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
+    stepsize_method = [0.1, 0.07, 2.0, 5.0]
+    nb_method = len(method_name)
+    psnr_list = [[] for _ in range(nb_method)]
+    residuals = [[] for _ in range(nb_method)]
+    i = 9
+    k = 0
+    path_method = ["GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/"]
+    for j in range(nb_method):
+        stepsize = str(stepsize_method[j])
+        dic = np.load(path_result + path_method[j] + "/den_level_0.1/lamb_15.0/nb_itr_9/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        
+        im = dic['restored']
+        # print(im.shape())
+        # print(np.max(im))
+        # print(np.min(im))
+        # plt.imsave(path_figure+'restored_9_itr_'+save_name[j]+'.png', im)
+        im.save(path_figure+'restored_9_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_restored'])+'.png')
 
 
 # if pars.fig_number == 2:
@@ -912,6 +937,22 @@ if pars.table_number == 2:
     output_ssim = np.array(output_ssim)
     for j in range(nb_method):
         print(method_name[j], " : PSNR/SSIM : {:.2f} & {:.2f}".format(np.mean(output_psnr[j]),np.mean(output_ssim[j])))
+
+
+
+if pars.table_number == 3:
+    #generate the result of the grid-search for speckle L = 10
+    path_result = "results/speckle/setSAR4/GD/denoiser_name_GSDRUNet_grayscale/L_10/"
+    lamb_list = ["80.0", "100.0", "150.0", "200.0"]
+    sigma_list = ["0.15", "0.2", "0.25", "0.3"]
+    n = 4
+    for std in sigma_list:
+        for lamb in lamb_list:
+            output_psnr = []
+            for j in range(n):
+                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/stepsize_0.001/dict_results_"+str(j)+".npy", allow_pickle=True).item()
+                output_psnr.append(dic_RED["psnr_restored"])
+            print("Sigma ",std,"Lambda ",lamb, ":", np.mean(output_psnr))
 
 
 # if pars.fig_number == 4:

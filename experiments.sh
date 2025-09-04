@@ -1,17 +1,23 @@
-python main.py --gpu_number 0 --dataset_name "CBSD68" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 5.0 --nb_itr 500 --sigma_obs 1.0 --p 0.2 --lamb 5.0 --denoiser_level 0.08 --alg "PGD" --Pb "inpainting" --momentum --theta 0.2 --restarting_li
+for i in 0.1 0.5 1. 5. 10.
+do
+    for j in 0.01 0.02 0.03 0.04 0.05
+    do
+        python main.py --sigma_obs 1. --stepsize 1. --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 0 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 4
+    done
+done
 
+# python main.py --gpu_number 1 --nb_itr 10 --dataset_name "SAR" --denoiser_name "GSDRUNet_grayscale" --stepsize 0.01 --lamb 150. --denoiser_level 0.2 --alg "GD" --Pb "speckle" --L 10 --grayscale
+
+
+
+# python main.py --gpu_number 1 --nb_itr 9 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 0.07 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --restarting_li --kernel_index 0
+# python main.py --gpu_number 1 --nb_itr 9 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 2.0 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --kernel_index 0
+# python main.py --gpu_number 1 --nb_itr 9 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 5.0 --momentum --theta 0.2 --lamb 15. --denoiser_level 0.1 --alg "PGD" --Pb "deblurring" --restarting_li --kernel_index 0
 
 # for b in 100.0 1000.0 3000.0 5000.0 7000.0 10000.0 100000.0
 # do
 #     python main.py --gpu_number 1 --B $b --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --dont_save_images --stepsize 0.07 --momentum --theta 0.01 --lamb 15. --denoiser_level 0.1 --alg "GD" --Pb "deblurring" --restarting_li --kernel_index 0
 # done
-
-
-
-
-
-
-
 
 
 

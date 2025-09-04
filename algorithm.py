@@ -36,6 +36,9 @@ class PnP(nn.Module):
         elif denoiser_name == "GSDRUNet_SoftPlus":
             # The pretrained GSDRNet weights can be download in : https://plmbox.math.cnrs.fr/f/414fbb3e754840978ef8/?dl=1
             denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet_SoftPlus.ckpt", act_mode = "s", device = device)
+        elif denoiser_name == "GSDRUNet_grayscale":
+            # The pretrained GSDRUnet weights in grayscale can be download in : https://huggingface.co/deepinv/gradientstep/resolve/main/GSDRUNet_grayscale_torch.ckpt
+            denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet_grayscale.ckpt", in_channels=1, out_channels=1, device = device)
         else:
             raise ValueError("Denoiser not implemented.")
         self.Pb = Pb
@@ -107,7 +110,7 @@ class PnP(nn.Module):
 
         for k in tqdm(range(self.nb_itr)):
             x_old = x
-            self.get_psnr_i(torch.clamp(out, min = -0., max =1.), clean, k)
+            self.get_psnr_i(torch.clamp(torch.real(out), min = -0., max =1.), clean, k)
 
             if self.Pb == "inpainting" and k < 10:
                 sigma_den = 50. / 255.
@@ -120,6 +123,10 @@ class PnP(nn.Module):
             reg_grad = y - y_denoised
 
             if alg == "GD":
+                # print("reg")
+                # print(torch.sqrt(torch.sum(torch.abs(reg_grad)**2)))
+                # print("data")
+                # print(torch.sqrt(torch.sum(torch.abs(data_grad)**2)))
                 grad = reg_grad + lamb * data_grad
                 x = y - stepsize*grad
                 out = y_denoised
@@ -133,8 +140,6 @@ class PnP(nn.Module):
                 else: 
                     x = data_fidelity_prox_step(self, y - (stepsize/lamb)*reg_grad, obs, stepsize)
                     out = y_denoised
-                
-
 
             if restarting_su:
                 restart_crit_su_old = restart_crit_su
@@ -169,4 +174,4 @@ class PnP(nn.Module):
                 y = x + (1-theta)*(x - x_old)
             else:
                 y = x
-        self.get_psnr_i(torch.clamp(out, min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack
+        self.get_psnr_i(torch.clamp(torch.real(out), min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack
