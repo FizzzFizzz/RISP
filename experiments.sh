@@ -1,8 +1,8 @@
-for i in 0.1 0.5 1. 5. 10.
+for i in 1. 5.
 do
     for j in 0.01 0.02 0.03 0.04 0.05
     do
-        python main.py --sigma_obs 1. --stepsize 1. --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 0 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
+        python main.py --sigma_obs 1. --stepsize 0.5 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 1 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
     done
 done
 
