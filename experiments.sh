@@ -1,10 +1,23 @@
-for i in 1. 5.
+for i in 1. 5. 10.
 do
-    for j in 0.01 0.02 0.03 0.04 0.05
+    for j in 0.01 0.02 0.03
     do
-        python main.py --sigma_obs 1. --stepsize 0.5 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 1 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
+        for k in 0 1 2 8 9
+        do
+            python main.py --sigma_obs 1. --kernel_index $k --stepsize 0.7 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 0 --dataset_name "set5" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR" --sf 2
+        done
     done
 done
+
+
+
+# for i in 5.
+# do
+#     for j in 0.01 0.02 0.03 0.04 0.05
+#     do
+#         python main.py --sigma_obs 1. --stepsize 0.1 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 1 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
+#     done
+# done
 
 # python main.py --gpu_number 1 --nb_itr 10 --dataset_name "SAR" --denoiser_name "GSDRUNet_grayscale" --stepsize 0.01 --lamb 150. --denoiser_level 0.2 --alg "GD" --Pb "speckle" --L 10 --grayscale
 

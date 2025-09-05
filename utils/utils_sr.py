@@ -3,7 +3,7 @@ import numpy as np
 from scipy import fftpack
 import torch
 from scipy import ndimage
-from scipy.interpolate import interp2d
+from scipy.interpolate import RegularGridInterpolator
 from scipy import signal
 import scipy.stats as ss
 import scipy.io as io
@@ -422,15 +422,20 @@ def numpy_degradation(x, k, sf=3):
 
 
 def shift_pixel(x, sf, upper_left=True):
-    """shift pixel for super-resolution with different scale factors
+    """Shift pixel for super-resolution with different scale factors.
+    
     Args:
-        x: WxHxC or WxH
-        sf: scale factor
-        upper_left: shift direction
+        x (ndarray): WxHxC or WxH image.
+        sf (float): scale factor.
+        upper_left (bool): shift direction.
+        
+    Returns:
+        ndarray: shifted image with same shape as input.
     """
     h, w = x.shape[:2]
     shift = (sf - 1) * 0.5
     xv, yv = np.arange(0, w, 1.0), np.arange(0, h, 1.0)
+
     if upper_left:
         x1 = xv + shift
         y1 = yv + shift
@@ -438,14 +443,28 @@ def shift_pixel(x, sf, upper_left=True):
         x1 = xv - shift
         y1 = yv - shift
 
+    # Clamp to valid range
     x1 = np.clip(x1, 0, w - 1)
     y1 = np.clip(y1, 0, h - 1)
 
-    if x.ndim == 2:
-        x = interp2d(xv, yv, x)(x1, y1)
-    if x.ndim == 3:
-        for i in range(x.shape[-1]):
-            x[:, :, i] = interp2d(xv, yv, x[:, :, i])(x1, y1)
+    # Create meshgrid for interpolation queries
+    X1, Y1 = np.meshgrid(x1, y1)
+    points = np.stack([Y1.ravel(), X1.ravel()], axis=-1)
 
-    return x
+    if x.ndim == 2:  # single channel
+        interp_func = RegularGridInterpolator(
+            (yv, xv), x, bounds_error=False, fill_value=None
+        )
+        out = interp_func(points).reshape(h, w)
+    elif x.ndim == 3:  # multi-channel
+        out = np.zeros_like(x)
+        for i in range(x.shape[-1]):
+            interp_func = RegularGridInterpolator(
+                (yv, xv), x[:, :, i], bounds_error=False, fill_value=None
+            )
+            out[:, :, i] = interp_func(points).reshape(h, w)
+    else:
+        raise ValueError("Input must be 2D or 3D array")
+
+    return out
 

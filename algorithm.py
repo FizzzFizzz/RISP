@@ -152,7 +152,7 @@ class PnP(nn.Module):
                 else:
                     j += 1
             elif restarting_li:
-                restart_crit_li = restart_crit_li + torch.sum((x-x_old)**2).item()
+                restart_crit_li = restart_crit_li + torch.sum((torch.abs(x-x_old))**2).item()
                 if j * restart_crit_li > B:
                     j = 0
                     if adapative_restart == True:

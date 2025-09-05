@@ -12,6 +12,9 @@ import os
 import argparse
 import cv2
 import imageio
+import sys 
+sys.path.append("utils/")
+import utils_image as util
 
 
 parser = ArgumentParser()
@@ -560,7 +563,7 @@ if pars.fig_number == 6:
     plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
     plt.ylim(13,27)
     plt.yticks([13,27], ["13", "27"], fontsize = size_number)
-    plt.legend()
+    # plt.legend()
     # plt.title(r"Convergence PSNR for inpainting")
     fig.savefig(path_figure+'convergence_PSNR_inpainting.png', dpi = 300)
     plt.show()
@@ -585,7 +588,7 @@ if pars.fig_number == 6:
     plt.yticks(ticks, labels, fontsize = size_number)
     plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
 
-    plt.legend()
+    # plt.legend()
     # plt.title(r"Convergence residuals for inpainting")
     fig.savefig(path_figure+'convergence_residuals_inpainting.png', dpi = 300)
     plt.show()
@@ -612,6 +615,230 @@ if pars.fig_number == 7:
         # print(np.min(im))
         # plt.imsave(path_figure+'restored_9_itr_'+save_name[j]+'.png', im)
         im.save(path_figure+'restored_9_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_restored'])+'.png')
+
+
+if pars.prep_fig == 7:
+    # Preparate the plot of the convergence results of various methods for MRI
+    path_result = "results/MRI/MRI_knee/"
+
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    stepsize_method = [0.7, 0.7, 2.0, 1.0]
+    nb_method = len(method_name)
+    psnr_list = [[] for _ in range(nb_method)]
+    residuals = [[] for _ in range(nb_method)]
+
+    for k in tqdm(range(10)):
+        path_method_1 = ["GD", "GD", "PGD", "PGD"]
+        path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+        for i in range(10):
+            for j in range(nb_method):
+                stepsize = str(stepsize_method[j])
+                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_4/"+ path_method_2[j] +"den_level_0.01/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                psnr_list[j].append(dic['psnr_list'])
+                
+                stack_im = dic['stack_images']
+                ref = np.sum(np.array(stack_im[0])**2)
+                residuals_stack = []
+                for l in range(len(stack_im) - 1):
+                    residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+                residuals[j].append(residuals_stack)
+
+    psnr_list = np.array(psnr_list)
+    residuals = np.array(residuals)
+
+    dict = {
+        'psnr_list' : psnr_list,
+        'method_name' : method_name,
+        'nb_method' : nb_method,
+        'stepsize_method' : stepsize_method,
+        'residuals' : residuals,
+        }
+    np.save(path_figure+"/result_MRI_factor_4", dict)
+
+
+
+if pars.fig_number == 7:
+    # Generate figure for convergence of various methods for inpainting
+    dic = np.load(path_figure+"/result_MRI_factor_4.npy", allow_pickle=True).item()
+    
+    psnr_list = dic['psnr_list']
+    nb_method = dic['nb_method']
+    method_name = dic['method_name']
+    residuals = dic['residuals']
+
+    fig = plt.figure()
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    color_indx = [3, 1, 2, 0]
+
+    for j in range(nb_method):
+        psnr_mean = np.mean(psnr_list[j], axis = 0)
+        # convergence_time = np.sum(psnr_mean < 27.7)
+        psnr_std = np.std(psnr_list[j], axis = 0)
+        psnr_min = np.quantile(psnr_list[j], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+
+    size_number = 17
+
+    # plt.plot([0, 50], [27.7, 27.7], linestyle = "--", color = 'gray')
+
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    plt.ylim(28,36)
+    plt.yticks([28,36], ["28", "36"], fontsize = size_number)
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_PSNR_MRI_reduction_factor_4.png', dpi = 300)
+    plt.show()
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        residuals_mean = np.mean(np.log10(residuals[j] + 1e-15), axis = 0)
+        residuals_min = np.quantile(np.log10(residuals[j] + 1e-15), 0.25, axis = 0)
+        residuals_max = np.quantile(np.log10(residuals[j] + 1e-15), 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+
+    ticks = np.arange(-15, 1, 1)
+    labels = [r"$10^{-15}$" if i == 0 else
+            r"$10^0$" if i == len(ticks) - 1 else ""
+            for i in range(len(ticks))]
+    plt.yticks(ticks, labels, fontsize = size_number)
+    plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
+
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_residuals_MRI_reduction_factor_4.png', dpi = 300)
+    plt.show()
+
+
+if pars.prep_fig == 8:
+    # Preparate the plot of the convergence results of various methods for MRI
+    path_result = "results/MRI/MRI_knee/"
+
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    stepsize_method = [0.7, 0.7, 2.0, 1.0]
+    nb_method = len(method_name)
+    psnr_list = [[] for _ in range(nb_method)]
+    residuals = [[] for _ in range(nb_method)]
+
+    for k in tqdm(range(10)):
+        path_method_1 = ["GD", "GD", "PGD", "PGD"]
+        path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+        for i in range(10):
+            for j in range(nb_method):
+                stepsize = str(stepsize_method[j])
+                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"+ path_method_2[j] +"den_level_0.02/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                psnr_list[j].append(dic['psnr_list'])
+                
+                stack_im = dic['stack_images']
+                ref = np.sum(np.array(stack_im[0])**2)
+                residuals_stack = []
+                for l in range(len(stack_im) - 1):
+                    residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+                residuals[j].append(residuals_stack)
+
+    psnr_list = np.array(psnr_list)
+    residuals = np.array(residuals)
+
+    dict = {
+        'psnr_list' : psnr_list,
+        'method_name' : method_name,
+        'nb_method' : nb_method,
+        'stepsize_method' : stepsize_method,
+        'residuals' : residuals,
+        }
+    np.save(path_figure+"/result_MRI_factor_8", dict)
+
+if pars.fig_number == 8:
+    # Generate figure for convergence of various methods for inpainting
+    dic = np.load(path_figure+"/result_MRI_factor_8.npy", allow_pickle=True).item()
+    
+    psnr_list = dic['psnr_list']
+    nb_method = dic['nb_method']
+    method_name = dic['method_name']
+    residuals = dic['residuals']
+
+    fig = plt.figure()
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    color_indx = [3, 1, 2, 0]
+
+    for j in range(nb_method):
+        psnr_mean = np.mean(psnr_list[j], axis = 0)
+        # convergence_time = np.sum(psnr_mean < 31)
+        # print(convergence_time)
+        psnr_std = np.std(psnr_list[j], axis = 0)
+        psnr_min = np.quantile(psnr_list[j], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+
+    size_number = 17
+
+    # plt.plot([0, 50], [31, 31], linestyle = "--", color = 'gray')
+
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    plt.ylim(24,32)
+    plt.yticks([24,32], ["24", "32"], fontsize = size_number)
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_PSNR_MRI_reduction_factor_8.png', dpi = 300)
+    plt.show()
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        residuals_mean = np.mean(np.log10(residuals[j] + 1e-15), axis = 0)
+        residuals_min = np.quantile(np.log10(residuals[j] + 1e-15), 0.25, axis = 0)
+        residuals_max = np.quantile(np.log10(residuals[j] + 1e-15), 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+
+    ticks = np.arange(-15, 1, 1)
+    labels = [r"$10^{-15}$" if i == 0 else
+            r"$10^0$" if i == len(ticks) - 1 else ""
+            for i in range(len(ticks))]
+    plt.yticks(ticks, labels, fontsize = size_number)
+    plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
+
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_residuals_MRI_reduction_factor_8.png', dpi = 300)
+    plt.show()
+
+
+
+if pars.fig_number == 9:
+    path_result = "results/MRI/MRI_knee/"
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
+    stepsize_method = [0.7, 0.7, 2.0, 1.0]
+    nb_method = len(method_name)
+    itr_method = [-1, 100, 125, 95]
+    i_list = [0,1,2,3]
+
+    path_method_1 = ["GD", "GD", "PGD", "PGD"]
+    path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+    for i in i_list:
+        for j in range(nb_method):
+            stepsize = str(stepsize_method[j])
+            dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"+ path_method_2[j] +"den_level_0.02/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            
+            if j == 0:
+                im = dic['clean_image']
+                plt.imsave(path_figure+'images_MRI/im_'+str(i)+'_clean_.png', im, cmap = 'gray')
+                im = util.tensor2uint(dic['initial_uv'])
+                plt.imsave(path_figure+'images_MRI/im_'+str(i)+'_init_.png', im, cmap = 'gray')
+                
+            im = dic['stack_images'][itr_method[j]]
+            im.save(path_figure+'images_MRI/im_'+str(i)+'_restored_'+str(itr_method[j])+'_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_list'][itr_method[j]])+'.png')
 
 
 # if pars.fig_number == 2:
@@ -942,15 +1169,16 @@ if pars.table_number == 2:
 
 if pars.table_number == 3:
     #generate the result of the grid-search for speckle L = 10
-    path_result = "results/MRI/MRI4knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_4/"
-    lamb_list = ["0.1", "0.5", "1.", "5.", "10."]
+    path_result = "results/MRI/MRI_4knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"
+    lamb_list = ["0.1", "0.5", "1.0", "5.0"]
     sigma_list = ["0.01", "0.02", "0.03", "0.04", "0.05"]
+    step_list = [1., 1., .5, 0.1]
     n = 4
     for std in sigma_list:
-        for lamb in lamb_list:
+        for i, lamb in enumerate(lamb_list):
             output_psnr = []
             for j in range(n):
-                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/stepsize_1.0/dict_results_"+str(j)+".npy", allow_pickle=True).item()
+                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/nb_itr_500/stepsize_"+str(step_list[i])+"/dict_results_"+str(j)+".npy", allow_pickle=True).item()
                 output_psnr.append(dic_RED["psnr_restored"])
             print("Sigma ",std,"Lambda ",lamb, ":", np.mean(output_psnr))
 

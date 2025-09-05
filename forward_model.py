@@ -15,6 +15,7 @@ import utils_image as util
 import utils_logger
 import utils_deblur as deblur
 import utils_sr
+import cv2
 from argparse import ArgumentParser
 from denoiser_model import *
 
@@ -31,6 +32,17 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = torch.abs(deblur.ifftn(temp))
         noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
         return (observation_without_noise + noise).to(self.device)
+    elif self.Pb == "SR":
+        # Degrade image
+        clean_image_np = np.float32(util.tensor2uint(clean_image) / 255.)
+        k_np = util.tensor2uint(self.kernel)
+        blur_im = utils_sr.numpy_degradation(clean_image_np, k_np, self.sf)
+        noise = np.random.normal(0, 1, blur_im.shape) * sigma / 255.
+        blur_im += noise
+        # Initialize the algorithm
+        init_im = cv2.resize(blur_im, (int(blur_im.shape[1] * self.sf), int(blur_im.shape[0] * self.sf)), interpolation=cv2.INTER_CUBIC)
+        init_im = utils_sr.shift_pixel(init_im, self.sf)
+        return util.uint2tensor4(blur_im).to(self.device), util.uint2tensor4(init_im).to(self.device)
     elif self.Pb == "inpainting":
         probs = torch.full((clean_image.shape[2],clean_image.shape[3]), self.p)
         mask = torch.bernoulli(probs, generator=gen)
@@ -44,7 +56,7 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = M[None,None,:,:] * fft2c(clean_image)
         noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
         observation = observation_without_noise + noise
-        pseudo_inverse = torch.real(ifft2c(M*observation.clone()))
+        pseudo_inverse = torch.real(ifft2c(M*observation.clone())).to(self.device)
         return observation, M, pseudo_inverse
     elif self.Pb == "speckle":
         observation = injectspeckle_amplitude_log(clean_image, L = self.L, device = self.device, gen = gen)
@@ -90,6 +102,8 @@ def compute_data_grad(self, x, obs):
         if self.Pb == 'deblurring':
             data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
             data_grad = torch.real(deblur.ifftn(data_grad))
+        elif self.Pb == "SR":
+            data_grad = utils_sr.grad_solution_L2(x, obs, self.k_tensor, self.sf)
         elif self.Pb == 'inpainting':
             data_grad = 2 * self.M * (x - obs)
         elif self.Pb == 'MRI':
@@ -126,7 +140,7 @@ def data_fidelity_prox_step(self, x, y, stepsize):
             else :
                 px = self.M*y + (1-self.M)*x
         elif self.Pb == 'MRI':
-            px = ifft2c(((1/(1+self.stepsize))*self.M+self.neg_M)*(fft2c(x)+self.stepsize*self.M*y))
+            px = torch.real(ifft2c(((1/(1+stepsize))*self.M+self.neg_M)*(fft2c(x)+stepsize*self.M*y)))
         elif self.Pb == 'ODT':
             input = x
             uu = input.clone()

@@ -22,7 +22,7 @@ from utils.inverse_scatter import InverseScatter # for ODT
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
 parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet, GSDRUNet or GSDRUNet_SoftPlus are implemented")
-parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT")
+parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT, speckle, MRI, SR")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
 parser.set_defaults(Nesterov=False)
@@ -49,6 +49,7 @@ parser.add_argument('--sigma_obs', type=float, default=12.75, help = "Standard v
 parser.add_argument('--dataset_name', type=str, default='set1', help = "Name of the dataset of image to restore")
 parser.add_argument('--kernel_name', type=str, default='levin_6.png', help = "Name of the kernel of blur")
 parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the kernel of blur")
+parser.add_argument('--sf', default=1, type=int, help = "Super-resolution factor")
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
@@ -88,6 +89,7 @@ dont_save_images = hparams.dont_save_images
 save_each_itr = hparams.save_each_itr
 alg = hparams.alg
 Average_PSNR = 0
+sf = hparams.sf
 L = hparams.L
 Lx = hparams.ODT_Lxy
 Ly = hparams.ODT_Lxy
@@ -118,7 +120,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         clean_image = util.imread_uint(clean_image_path, 1)
         clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
     clean_image = clean_image.to(device)
-    if Pb == "deblurring":
+    if Pb == "deblurring" or Pb == "SR":
         if '--kernel_index' in sys.argv:
             k_index = hparams.kernel_index
             kernel_path = os.path.join('utils/kernels', 'Levin09.mat')
@@ -137,9 +139,12 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
             kernel = kernel / torch.sum(kernel)
         model.kernel = kernel.to(device)
-        observation = gen_data(model, clean_image, sigma_obs)
-        initial_uv = observation.clone()
-
+        if Pb == "deblurring":
+            observation = gen_data(model, clean_image, sigma_obs)
+            initial_uv = observation.clone()
+        if Pb == "SR":
+            model.sf = sf
+            observation, initial_uv = gen_data(model, clean_image, sigma_obs)
     elif Pb == "inpainting":
         model.p = hparams.p
         observation, mask = gen_data(model, clean_image, sigma_obs)
@@ -216,6 +221,9 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         os.makedirs(savepth, exist_ok = True)
     if '--L' in sys.argv:
         savepth = os.path.join(savepth, 'L_'+str(L))
+        os.makedirs(savepth, exist_ok = True)
+    if '--sf' in sys.argv:
+        savepth = os.path.join(savepth, "sf_"+str(sf))
         os.makedirs(savepth, exist_ok = True)
     if '--reduction_factor' in sys.argv:
         savepth = os.path.join(savepth, 'reduction_factor_'+str(hparams.reduction_factor))
