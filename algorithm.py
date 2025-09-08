@@ -21,7 +21,7 @@ from forward_model import *
 
 
 class PnP(nn.Module):
-    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', sigma_obs = 0, noise_model = "gaussian", sf = 1):
+    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', sigma_obs = 0, save_frequency = 1, noise_model = "gaussian", sf = 1):
         '''
             nb_itr : number of iterations of the PnP algorithm
         '''
@@ -30,6 +30,8 @@ class PnP(nn.Module):
         self.device = device
         if denoiser_name == "DRUNet":
             denoiser_net = Drunet_running(model_path = "models_ckpt/drunet_color.pth", n_channels = n_channels, device = device)
+        elif denoiser_name == "DRUNet_ODT":
+            denoiser_net = Drunet_running(model_path = "models_ckpt/DRUNet_ODT.pth", n_channels = 1, device = device)
         elif denoiser_name == "GSDRUNet":
             # The pretrained GSDRNet weights can be download in : https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt
             denoiser_net = deepinv.models.GSDRUNet(pretrained = "models_ckpt/GSDRUNet.ckpt", device = device)
@@ -46,16 +48,18 @@ class PnP(nn.Module):
         self.noise_model = noise_model
         self.sf = 1
         self.net = denoiser_net
-
+        self.save_frequency = save_frequency
+        
         # only test
         self.res = {}
         self.res['psnr'] = [0] * (nb_itr + 1)
         self.res['ssim'] = [0] * (nb_itr + 1)
+        self.res['residuals'] = [0] * (nb_itr + 1)
         self.res['image'] = [0] * (nb_itr + 1)
         self.nb_restart_activ = 0
         
 
-    def get_psnr_i(self, u, clean, i):
+    def get_psnr_i(self, record, u, clean, i):
         '''
         Compute the PSNR, SSIM and save the image at the iteration i.
         '''
@@ -63,8 +67,16 @@ class PnP(nn.Module):
         self.res['psnr'][i] = psnr
         ssim = util.calculate_ssim_torch(u, clean).item()
         self.res['ssim'][i] = ssim
+        self.res['residuals'][i] = record
         pre_i = torch.clamp(u, 0., 1.)
-        self.res['image'][i] = ToPILImage()(pre_i[0])
+
+        # We cannot store all results by ODT, it's too many.
+        # self.res['image'][i] = ToPILImage()(pre_i[0])
+        
+        if i % self.save_frequency == 0:
+                self.res['image'][i] = ToPILImage()(pre_i[0])
+        
+            # self.res['image'][i] = ToPILImage()(pre_i[0])
 
     def forward(self, initial_uv, obs, clean, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02, alg = "GD",adapative_restart = False,adapative_restart_factor = 0.5):
         '''
@@ -88,6 +100,7 @@ class PnP(nn.Module):
         '''
         # init
         u  = initial_uv
+        self.obs = obs
         data_fidelity_init(self, init = initial_uv) # Initialize the data-fidelity operators
         self.nb_restart_activ = 0
 
@@ -95,7 +108,8 @@ class PnP(nn.Module):
         y_denoised = u
         x = u
         y = u
-
+        record = y_denoised - y_denoised
+        record = torch.mean(record*record)
         out = y_denoised
         
         if restarting_su:
@@ -110,37 +124,40 @@ class PnP(nn.Module):
 
         for k in tqdm(range(self.nb_itr)):
             x_old = x
-            self.get_psnr_i(torch.clamp(torch.real(out), min = -0., max =1.), clean, k)
+            self.get_psnr_i(record, torch.clamp(torch.real(out), min = -0., max =1.), clean, k)
 
             if self.Pb == "inpainting" and k < 10:
                 sigma_den = 50. / 255.
+            # elif self.Pb == "rician" and k < 3:
+            #     sigma_den = denoiser_sigma/2
             else:
                 sigma_den = denoiser_sigma
 
-            data_grad = compute_data_grad(self, y, obs)
+            old_y_denoised = y_denoised
+
             y = y.type(torch.cuda.FloatTensor)
             y_denoised = self.net.forward(y, sigma_den)
             reg_grad = y - y_denoised
+
+            record = y_denoised - old_y_denoised
+            record = torch.mean(record*record)
+            record = record / (torch.mean(initial_uv*initial_uv))
 
             if alg == "GD":
                 # print("reg")
                 # print(torch.sqrt(torch.sum(torch.abs(reg_grad)**2)))
                 # print("data")
                 # print(torch.sqrt(torch.sum(torch.abs(data_grad)**2)))
+                data_grad = compute_data_grad(self, y, obs)
                 grad = reg_grad + lamb * data_grad
                 x = y - stepsize*grad
                 out = y_denoised
-                if self.Pb == 'ODT':
-                    x = torch.clamp(x,-0.,1.)
-                    out = x
             elif alg == "PGD":
                 if self.Pb == 'ODT':
                     x = data_fidelity_prox_step(self, y - stepsize*reg_grad, obs, stepsize)
-                    out = x
                 else: 
                     x = data_fidelity_prox_step(self, y - (stepsize/lamb)*reg_grad, obs, stepsize)
-                    out = y_denoised
-
+                out = y_denoised
             if restarting_su:
                 restart_crit_su_old = restart_crit_su
                 restart_crit_su = torch.mean(torch.abs(x-x_old)).item()
@@ -152,7 +169,7 @@ class PnP(nn.Module):
                 else:
                     j += 1
             elif restarting_li:
-                restart_crit_li = restart_crit_li + torch.sum((torch.abs(x-x_old))**2).item()
+                restart_crit_li = restart_crit_li + torch.sum((x-x_old)**2).item()
                 if j * restart_crit_li > B:
                     j = 0
                     if adapative_restart == True:
@@ -174,4 +191,4 @@ class PnP(nn.Module):
                 y = x + (1-theta)*(x - x_old)
             else:
                 y = x
-        self.get_psnr_i(torch.clamp(torch.real(out), min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack
+        self.get_psnr_i(record, torch.clamp(torch.real(out), min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack

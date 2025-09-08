@@ -22,7 +22,7 @@ from utils.inverse_scatter import InverseScatter # for ODT
 parser = ArgumentParser()
 parser.add_argument('--model_path', type=str, default="models_ckpt/drunet_color.pth", help = "The path for the DRUNet pretrained weights")
 parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet, GSDRUNet or GSDRUNet_SoftPlus are implemented")
-parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT, speckle, MRI, SR")
+parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
 parser.set_defaults(Nesterov=False)
@@ -36,10 +36,10 @@ parser.add_argument('--restarting_li', dest='restarting_li', action='store_true'
 parser.set_defaults(restarting_li=False)
 parser.add_argument('--alg', type=str, default="GD", help = "type of step on the data-fidelity, if alg = 'GD' it is a graident step on the data-fidelity, if alg = 'PGD' it is a proximal step on the data-fidelity")
 parser.add_argument('--ODT_Lxy', type=float, default=0.18, help = "ODT Lx and Ly")
-parser.add_argument('--ODT_Nxy', type=int, default=128, help = "ODT image size")
+parser.add_argument('--ODT_Nxy', type=int, default=1024, help = "ODT image size")
 parser.add_argument('--ODT_wave', type=int, default=6, help = "ODT wave")
-parser.add_argument('--ODT_Rec', type=int, default=180, help = "ODT reciever number")
-parser.add_argument('--ODT_Trans', type=int, default=20, help = "ODT transmitters number")
+parser.add_argument('--ODT_Rec', type=int, default=360, help = "ODT reciever number")
+parser.add_argument('--ODT_Trans', type=int, default=240, help = "ODT transmitters number")
 parser.add_argument('--ODT_sensorRadius', type=float, default=1.6, help = "ODT sensor radius")
 parser.add_argument('--r', type=int, default=3, help = "Parameter for the Generalized Nesterov momentum")
 parser.add_argument('--B', type=float, default=5000., help = "Parameter restarting criterion proposed by Li")
@@ -49,7 +49,6 @@ parser.add_argument('--sigma_obs', type=float, default=12.75, help = "Standard v
 parser.add_argument('--dataset_name', type=str, default='set1', help = "Name of the dataset of image to restore")
 parser.add_argument('--kernel_name', type=str, default='levin_6.png', help = "Name of the kernel of blur")
 parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the kernel of blur")
-parser.add_argument('--sf', default=1, type=int, help = "Super-resolution factor")
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
 parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
@@ -60,10 +59,13 @@ parser.add_argument('--reduction_factor', type=int, default=8, help = "Factor of
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
 parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true')
-parser.add_argument('--initialisation', type=str, default=None, help = "If not None, define the initialization, possible: 'zero', 'random'")
 parser.set_defaults(save_each_itr=False)
+parser.add_argument('--initialisation', type=str, default=None, help = "If not None, define the initialization, possible: 'zero', 'random'")
+parser.add_argument('--save_frequency', type=int, default=1, help = "How often we save the images")
+
 hparams = parser.parse_args()
 
+save_frequency = hparams.save_frequency
 Pb = hparams.Pb
 denoiser_name = hparams.denoiser_name
 model_path = hparams.model_path
@@ -83,6 +85,8 @@ momentum = hparams.momentum
 grayscale = hparams.grayscale
 if Pb == 'MRI' and not('--grayscale' in sys.argv):
     grayscale = True
+if Pb == 'ODT':
+    grayscale = True
 restarting_su = hparams.restarting_su
 restarting_li = hparams.restarting_li
 stepsize = hparams.stepsize
@@ -90,7 +94,6 @@ dont_save_images = hparams.dont_save_images
 save_each_itr = hparams.save_each_itr
 alg = hparams.alg
 Average_PSNR = 0
-sf = hparams.sf
 L = hparams.L
 Lx = hparams.ODT_Lxy
 Ly = hparams.ODT_Lxy
@@ -107,7 +110,7 @@ input_paths = os_sorted([os.path.join(input_path, im_name) for im_name in os.lis
 
 for i in range(hparams.start_im_indx, len(input_paths)):
     clean_image_path = input_paths[i]
-    model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb, sigma_obs = sigma_obs)
+    model = PnP(nb_itr = nb_itr, denoiser_name = denoiser_name, device = device, Pb = Pb, sigma_obs = sigma_obs, save_frequency=save_frequency)
     model.eval()
     model.net.eval()
     model.to(device)
@@ -121,7 +124,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         clean_image = util.imread_uint(clean_image_path, 1)
         clean_image = util.single2tensor3(clean_image).unsqueeze(0) /255.
     clean_image = clean_image.to(device)
-    if Pb == "deblurring" or Pb == "SR":
+    if Pb == "deblurring":
         if '--kernel_index' in sys.argv:
             k_index = hparams.kernel_index
             kernel_path = os.path.join('utils/kernels', 'Levin09.mat')
@@ -140,17 +143,18 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             kernel = util.single2tensor3(kernel).unsqueeze(0) / 255.
             kernel = kernel / torch.sum(kernel)
         model.kernel = kernel.to(device)
-        if Pb == "deblurring":
-            observation = gen_data(model, clean_image, sigma_obs)
-            initial_uv = observation.clone()
-        if Pb == "SR":
-            model.sf = sf
-            observation, initial_uv = gen_data(model, clean_image, sigma_obs)
+        observation = gen_data(model, clean_image, sigma_obs)
+        initial_uv = observation.clone()
+
     elif Pb == "inpainting":
         model.p = hparams.p
         observation, mask = gen_data(model, clean_image, sigma_obs)
         model.mask = mask
         initial_uv = mask*observation.clone() + 0.5 * (1 - mask)
+    elif Pb == "rician":
+        model.noise_model = "rician"
+        observation = gen_data(model, clean_image, sigma_obs)
+        initial_uv = observation.clone()
 
     elif Pb == "MRI":
         model.numLines = int(clean_image.shape[-1] / hparams.reduction_factor)
@@ -178,7 +182,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         v = initial_uv.clone()
         u = initial_uv.clone()
         with torch.enable_grad():
-            for ii in range(2000):
+            for ii in range(50):
                 v = u.clone()
                 v.requires_grad_()
                 t = v
@@ -186,7 +190,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
                 uscat_pred = scatter_op.forward(t, unnormalize=False)
                 norm = torch.sum(torch.abs(uscat_pred - observation)**2)
                 norm_grad = torch.autograd.grad(outputs=norm, inputs=v)[0]
-                u = u - 1*norm_grad
+                u = u - 100*norm_grad
         initial_uv = u
     model.observation = observation
     
@@ -207,6 +211,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
 
     psnr_list = model.res['psnr']
     ssim_list = model.res['ssim']
+    res_list  = model.res['residuals']
     print("Restored image PSNR = {:.2f}".format(psnr_list[-1]))
     Average_PSNR += psnr_list[-1]
     if restarting_su or restarting_li:
@@ -230,9 +235,6 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         os.makedirs(savepth, exist_ok = True)
     if '--L' in sys.argv:
         savepth = os.path.join(savepth, 'L_'+str(L))
-        os.makedirs(savepth, exist_ok = True)
-    if '--sf' in sys.argv:
-        savepth = os.path.join(savepth, "sf_"+str(sf))
         os.makedirs(savepth, exist_ok = True)
     if '--reduction_factor' in sys.argv:
         savepth = os.path.join(savepth, 'reduction_factor_'+str(hparams.reduction_factor))
@@ -279,7 +281,8 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             savepth_img = savepth+"/set_img_{}/".format(i)
             os.makedirs(savepth_img, exist_ok = True)
             for j in range(len(model.res['image'])):
-                model.res['image'][j].save(savepth_img + 'iterations_{}.png'.format(j))
+                if j % save_frequency ==0:
+                    model.res['image'][j].save(savepth_img + 'iterations_{}.png'.format(j))
         
         model.res['image'][-1].save(savepth + "/{}_restored_img.png".format(i))
         clean_img_uint = util.tensor2uint(clean_image)
@@ -313,6 +316,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
             'clean_image_path' : clean_image_path,
             'psnr_list' : psnr_list,
             'ssim_list' : ssim_list,
+            'res_list'  : res_list,
             'psnr_restored' : psnr_list[-1],
             'ssim_restored' : ssim_list[-1],
             'restored' : model.res['image'][-1],

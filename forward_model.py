@@ -15,7 +15,6 @@ import utils_image as util
 import utils_logger
 import utils_deblur as deblur
 import utils_sr
-import cv2
 from argparse import ArgumentParser
 from denoiser_model import *
 
@@ -32,17 +31,17 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = torch.abs(deblur.ifftn(temp))
         noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
         return (observation_without_noise + noise).to(self.device)
-    elif self.Pb == "SR":
-        # Degrade image
-        clean_image_np = np.float32(util.tensor2uint(clean_image) / 255.)
-        k_np = util.tensor2uint(self.kernel)
-        blur_im = utils_sr.numpy_degradation(clean_image_np, k_np, self.sf)
-        noise = np.random.normal(0, 1, blur_im.shape) * sigma / 255.
-        blur_im += noise
-        # Initialize the algorithm
-        init_im = cv2.resize(blur_im, (int(blur_im.shape[1] * self.sf), int(blur_im.shape[0] * self.sf)), interpolation=cv2.INTER_CUBIC)
-        init_im = utils_sr.shift_pixel(init_im, self.sf)
-        return util.uint2tensor4(blur_im).to(self.device), util.uint2tensor4(init_im).to(self.device)
+    elif self.Pb == "rician":
+        observation_without_noise = clean_image
+        gen_real = torch.Generator()
+        gen_real.manual_seed(seed)
+        gen_imag = torch.Generator()
+        gen_imag.manual_seed(seed*2)
+        # For Rician noise, we need two orthogonal i.i.d. gaussian noises.
+        noise_real = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen_real)*sigma / 255).to(self.device)
+        noise_imag = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen_imag)*sigma / 255).to(self.device)
+        observation = torch.sqrt( (observation_without_noise+noise_real)**2 + noise_imag**2)
+        return observation.to(self.device)
     elif self.Pb == "inpainting":
         probs = torch.full((clean_image.shape[2],clean_image.shape[3]), self.p)
         mask = torch.bernoulli(probs, generator=gen)
@@ -56,14 +55,13 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = M[None,None,:,:] * fft2c(clean_image)
         noise = (torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255).to(self.device)
         observation = observation_without_noise + noise
-        pseudo_inverse = torch.real(ifft2c(M*observation.clone())).to(self.device)
+        pseudo_inverse = torch.real(ifft2c(M*observation.clone()))
         return observation, M, pseudo_inverse
     elif self.Pb == "speckle":
         observation = injectspeckle_amplitude_log(clean_image, L = self.L, device = self.device, gen = gen)
         return observation
     else:
         raise ValueError("Forward Model not implemented")
-
 
 def data_fidelity_init(self, init = None):
     if self.Pb == 'deblurring':
@@ -86,13 +84,19 @@ def data_fidelity_init(self, init = None):
         self.neg_M = torch.ones(self.M.shape).to(self.device) - 1*self.M
     elif self.Pb == 'ODT':
         from utils.inverse_scatter import InverseScatter
+        shape0 = init.shape[2]
+        shape1 = init.shape[3]
+        shape2 = self.obs.shape[2]
+        shape3 = self.obs.shape[1]
         self.scatter_op = InverseScatter(
-            Lx=0.18, Ly=0.18, Nx=128, Ny=128, 
-            wave=6, numRec=180, numTrans=20,
+            Lx=0.18, Ly=0.18, Nx=shape0, Ny=shape1, 
+            wave=6, numRec=shape2, numTrans=shape3,
             sensorRadius=1.6, svd=False
         )
     elif self.Pb == "speckle":
         self.f_speckle = lambda u, y : torch.sum(self.L * (u + torch.exp(y - u)))
+    elif self.Pb == "rician":
+        print('Rician noise removal')
     else:
         raise ValueError("Forward Model not implemented")
 
@@ -102,8 +106,6 @@ def compute_data_grad(self, x, obs):
         if self.Pb == 'deblurring':
             data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
             data_grad = torch.real(deblur.ifftn(data_grad))
-        elif self.Pb == "SR":
-            data_grad = utils_sr.grad_solution_L2(x, obs, self.k_tensor, self.sf)
         elif self.Pb == 'inpainting':
             data_grad = 2 * self.M * (x - obs)
         elif self.Pb == 'MRI':
@@ -123,6 +125,12 @@ def compute_data_grad(self, x, obs):
             raise ValueError("Forward Model not implemented")
     elif self.noise_model == 'speckle':
         return self.L*(1-torch.exp(obs-x))
+    elif self.noise_model == 'rician':
+        if self.Pb == 'rician':
+            temp_sig = self.sigma_obs/255
+            data_grad = x / temp_sig**2 - (obs / temp_sig**2) * SpecialB((x*obs)/temp_sig**2)
+        else:
+            raise ValueError("Forward Model not implemented")
     else :  
         ValueError('Forward Model noise model not implemented')
     return data_grad
@@ -140,24 +148,27 @@ def data_fidelity_prox_step(self, x, y, stepsize):
             else :
                 px = self.M*y + (1-self.M)*x
         elif self.Pb == 'MRI':
-            px = torch.real(ifft2c(((1/(1+stepsize))*self.M+self.neg_M)*(fft2c(x)+stepsize*self.M*y)))
+            px = ifft2c(((1/(1+self.stepsize))*self.M+self.neg_M)*(fft2c(x)+self.stepsize*self.M*y))
         elif self.Pb == 'ODT':
             input = x
             uu = input.clone()
             vv = input.clone()
             with torch.enable_grad():
-                for _ in range(5):
+                tt = 0
+                crit = 1
+                dt = 400/stepsize / self.lamb
+                while (tt<100)&(crit>2e-3):
+                    tt += 1
                     uu = vv.clone()
                     uu = uu.detach().requires_grad_(True)
                     uscat_pred = self.scatter_op.forward(uu, unnormalize=False)
                     difference = uscat_pred - y
-                    norm = 0.5*(self.lamb)*torch.sum(torch.abs(difference)**2) + 0.5*torch.sum(torch.abs(uu-input)**2)
+                    norm = 0.5*(stepsize*self.lamb)*torch.sum(torch.abs(difference)**2) + 0.5*torch.sum(torch.abs(uu-input)**2)
                     norm_grad = torch.autograd.grad(outputs=norm, inputs=uu)[0]
                     data_grad = norm_grad
-                    vv -= data_grad*0.1
-                    vv = torch.clamp(vv,-0,1)
+                    vv -= data_grad
+                    crit = torch.sum(torch.abs(data_grad.detach())**2)
             x = uu
-            x = torch.clamp(x,-0,1)
             px = x
         else:
             ValueError('Forward Model degradation not implemented')
@@ -176,6 +187,8 @@ def data_fidelity_prox_step(self, x, y, stepsize):
         px = vv
         print(px)
         px = torch.clamp(px,-0,1)
+    elif self.noise_model == 'rician': 
+        px = _fast_irl1(y, x, self.sigma_obs, stepsize, irl1_iter_num=15)
     else :  
         ValueError('Forward Model noise model not implemented')
     return px
@@ -267,3 +280,22 @@ def injectspeckle_amplitude_log(img, L, device, gen):
     ima_speckle_amplitude = img_exp * s_amplitude[None,None,:,:]
     ima_speckle_log = torch.log(ima_speckle_amplitude)
     return ima_speckle_log
+
+def SpecialB(x):
+    return torch.special.i1e(x) / torch.special.i0e(x)
+
+
+def _fast_irl1(obs, input, sigma, lamb, irl1_iter_num=10):
+    f = obs
+    v = input
+    sigma = sigma/255
+    irl1_input = input
+    f_sigma2 = f / sigma**2
+    lamb_f_sigma2 = lamb * f_sigma2
+    lamb_sigma2_beta = lamb/sigma**2 + 1
+    for _ in range(irl1_iter_num):
+        Iz = SpecialB(f_sigma2 * v)
+        Iz = torch.clamp(Iz, min=0)
+        y = f_sigma2 * (1 - Iz)
+        v = (lamb_f_sigma2 + irl1_input - lamb*y) / lamb_sigma2_beta
+    return v

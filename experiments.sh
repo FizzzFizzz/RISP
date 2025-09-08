@@ -1,3 +1,4 @@
+
 for i in 4 5 6 7 8 9
 do
     python main.py --sigma_obs 1. --kernel_index $i --stepsize 0.7 --nb_itr 500 --denoiser_level 0.01 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR" --sf 2
@@ -7,11 +8,11 @@ do
 done
 
 
-# for i in 5.
+
 # do
 #     for j in 0.01 0.02 0.03 0.04 0.05
 #     do
-#         python main.py --sigma_obs 1. --stepsize 0.1 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 1 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
+#         python main.py --sigma_obs 1. --stepsize 0.5 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 1 --dataset_name "MRI_4knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 8
 #     done
 # done
 
@@ -44,6 +45,7 @@ done
 
 
 
+# python main.py --save_frequency 10 --Pb "ODT" --ODT_Nxy 128 --ODT_Rec 180 --ODT_Trans 20 --dataset_name 'ODT10' --denoiser_name "DRUNet_ODT" --nb_itr 50 --denoiser_level 0.03 --stepsize 4e-3 --lamb 1e5 --alg "GD" 
 
 
 
@@ -51,77 +53,48 @@ done
 
 
 
+#### For ODT with image size 1024, 360 rec, 240 trans, 0.0001 noise:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# for i in 0.09 0.1 0.11
+# # RiRED
+# for i in 0.01  1.0
 # do
-#     for j in 13. 15. 18.
-#     do 
-#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 0.07 --momentum --theta 0.2 --lamb $j --denoiser_level $i --alg "GD" --Pb "deblurring"
-#     done
+#     python main.py --Pb "ODT" --save_frequency 200 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 4e-3 --theta $i --restarting_li --B 5e5 --momentum --alg "GD" 
+# done
+
+# # Prox-RiRED
+# for i in 0.01  1.0
+# do
+#     python main.py --Pb "ODT" --save_frequency 200 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta $i --restarting_li --B 5e5 --momentum --alg "PGD" 
 # done
 
 
 
 
 
-
-# for i in 0.09 0.1 0.11
+#### For Rician noise removal on natural color images, noise level 25.5
+##### RiRED
+# for i in 0.01  1.0  
 # do
-#     for j in 13.
-#     do 
-#         python main.py --gpu_number 0 --dataset_name "set5" --stepsize 0.1 --lamb $j --denoiser_level $i --alg "GD" --Pb "deblurring"
-#     done
-# done
-
-
-###
-# For ODT: 
-###
-
-
-# for i in  0.01 0.1 0.3   0.9   1.0
-# do
-#     CUDA_VISIBLE_DEVICES='0' python main_ODT.py --alg 'GD' --momentum --theta $i --lamb 1.5e6 --stepsize 1e-4
-# # python generate_results.py
-# done
-
-# for i in 0.01 0.1 0.3   0.9  1.0
-# do
-#     for j in 100
+#     for B in 1e3
 #     do
-#         CUDA_VISIBLE_DEVICES='0' python main_ODT.py --alg 'GD'  --theta $i --restarting_li --B $j --momentum --lamb 1.5e6 --stepsize 1e-4
+#         python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD68_cut8_10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 0.03 --theta $i --restarting_li --B $B --momentum --alg "GD" 
 #     done
 # done
 
-# for i in   0.5 1.0
+# ##### Prox-RiRED
+# for i in  1.0 0.01 
 # do
-#     CUDA_VISIBLE_DEVICES='0' python main_ODT.py --alg 'PGD' --momentum --theta $i --lamb 3.75e3 --stepsize 2.5e-3
-# # python generate_results.py
-# done
-
-
-# for i in   0.5 1.0
-# do
-#     for j in 100
+#     for B in 1e3 
 #     do
-#         CUDA_VISIBLE_DEVICES='0' python main_ODT.py --alg 'PGD' --theta $i --restarting_li --B $j --momentum --lamb 3.75e3 --stepsize 2.5e-3
-#     done # python generate_results.py
+#         python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD68_cut8_10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 5e-4 --theta $i --restarting_li --B $B --momentum --alg "PGD" 
+#     done
 # done
+
+
+
+
+
+
+
+
 
