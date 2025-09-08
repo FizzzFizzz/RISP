@@ -75,11 +75,11 @@ def data_fidelity_init(self, init = None):
         self.fft_kH = fft_kH
         # Initialization of Proximal operator
         self.k_tensor = torch.tensor(self.kernel).to(self.device)
-        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
+        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(self.observation, self.k_tensor, self.sf)
     elif self.Pb == 'SR':
         # Initialization of Proximal operator
         self.k_tensor = torch.tensor(self.kernel).to(self.device)
-        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(init, self.k_tensor, self.sf)
+        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(self.observation, self.k_tensor, self.sf)
     elif self.Pb == 'inpainting':
         self.M = (self.mask).clone()
     elif self.Pb == "MRI":

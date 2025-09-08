@@ -1,14 +1,10 @@
-for i in 1. 5. 10.
+for i in 4 5 6 7 8 9
 do
-    for j in 0.01 0.02 0.03
-    do
-        for k in 0 1 2 8 9
-        do
-            python main.py --sigma_obs 1. --kernel_index $k --stepsize 0.7 --nb_itr 500 --denoiser_level $j --lamb $i --gpu_number 0 --dataset_name "set5" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR" --sf 2
-        done
-    done
+    python main.py --sigma_obs 1. --kernel_index $i --stepsize 0.7 --nb_itr 500 --denoiser_level 0.01 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR" --sf 2
+    python main.py --sigma_obs 1. --kernel_index $i --stepsize 10.0 --nb_itr 500 --denoiser_level 0.01 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "SR" --sf 2
+    python main.py --sigma_obs 1. --kernel_index $i --stepsize 0.5 --nb_itr 500 --denoiser_level 0.01 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --momentum --theta 0.2 --restarting_li --Pb "SR" --sf 2
+    python main.py --sigma_obs 1. --kernel_index $i --stepsize 10.0 --nb_itr 500 --denoiser_level 0.01 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --momentum --theta 0.2 --restarting_li --Pb "SR" --sf 2
 done
-
 
 
 # for i in 5.

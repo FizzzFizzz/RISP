@@ -545,6 +545,8 @@ if pars.fig_number == 6:
     residuals = dic['residuals']
 
     fig = plt.figure()
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    color_indx = [3, 1, 2, 0]
 
     for j in range(nb_method):
         psnr_mean = np.mean(psnr_list[j], axis = 0)
@@ -552,7 +554,7 @@ if pars.fig_number == 6:
         psnr_std = np.std(psnr_list[j], axis = 0)
         psnr_min = np.quantile(psnr_list[j], 0.25, axis = 0)
         psnr_max = np.quantile(psnr_list[j], 0.75, axis = 0)
-        line, = plt.plot(np.arange(len(psnr_mean[:convergence_time+5])), psnr_mean[:convergence_time+5], label = method_name[j])
+        line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = method_name[j], color = colors[color_indx[j]])
         # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
 
     size_number = 17
@@ -575,7 +577,7 @@ if pars.fig_number == 6:
         residuals_mean = np.mean(np.log10(residuals[j]), axis = 0)
         residuals_min = np.quantile(np.log10(residuals[j]), 0.25, axis = 0)
         residuals_max = np.quantile(np.log10(residuals[j]), 0.75, axis = 0)
-        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j])
+        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
         plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
     plt.xlim(0,499)
@@ -658,7 +660,7 @@ if pars.prep_fig == 7:
 
 
 if pars.fig_number == 7:
-    # Generate figure for convergence of various methods for inpainting
+    # Generate figure for convergence of various methods for MRI factor 4
     dic = np.load(path_figure+"/result_MRI_factor_4.npy", allow_pickle=True).item()
     
     psnr_list = dic['psnr_list']
@@ -1169,17 +1171,19 @@ if pars.table_number == 2:
 
 if pars.table_number == 3:
     #generate the result of the grid-search for speckle L = 10
-    path_result = "results/MRI/MRI_4knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"
-    lamb_list = ["0.1", "0.5", "1.0", "5.0"]
-    sigma_list = ["0.01", "0.02", "0.03", "0.04", "0.05"]
-    step_list = [1., 1., .5, 0.1]
+    path_result = "results/SR/set5/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/"
+    lamb_list = [5.0, 10.0, 15.0]
+    sigma_list = [0.01]
+    step_list = [0.7,0.7,0.5]
+    kernel_list = [0, 1, 2, 8, 9]
     n = 4
     for std in sigma_list:
         for i, lamb in enumerate(lamb_list):
             output_psnr = []
             for j in range(n):
-                dic_RED = np.load(path_result + "den_level_" + std +"/lamb_" + lamb +"/nb_itr_500/stepsize_"+str(step_list[i])+"/dict_results_"+str(j)+".npy", allow_pickle=True).item()
-                output_psnr.append(dic_RED["psnr_restored"])
+                for k in kernel_list:
+                    dic_RED = np.load(path_result + "kernel_"+ str(k) +"/sf_2/den_level_" + str(std) +"/lamb_" + str(lamb) +"/nb_itr_500/stepsize_"+str(step_list[i])+"/dict_results_"+str(j)+".npy", allow_pickle=True).item()
+                    output_psnr.append(dic_RED["psnr_restored"])
             print("Sigma ",std,"Lambda ",lamb, ":", np.mean(output_psnr))
 
 

@@ -60,6 +60,7 @@ parser.add_argument('--reduction_factor', type=int, default=8, help = "Factor of
 parser.add_argument('--dont_save_images', dest='dont_save_images', action='store_true')
 parser.set_defaults(dont_save_images=False)
 parser.add_argument('--save_each_itr', dest='save_each_itr', action='store_true')
+parser.add_argument('--initialisation', type=str, default=None, help = "If not None, define the initialization, possible: 'zero', 'random'")
 parser.set_defaults(save_each_itr=False)
 hparams = parser.parse_args()
 
@@ -187,7 +188,15 @@ for i in range(hparams.start_im_indx, len(input_paths)):
                 norm_grad = torch.autograd.grad(outputs=norm, inputs=v)[0]
                 u = u - 1*norm_grad
         initial_uv = u
-        
+    model.observation = observation
+    
+    if hparams.initialisation is not None: # Define another initialisation
+        if hparams.initialisation == "zero":
+            initial_uv = 0*clean_image
+        elif hparams.initialisation == "random":
+            gen = torch.Generator()
+            gen.manual_seed(0)
+            initial_uv = torch.rand(clean_image.size(), generator = gen)
 
     time_restore = time()
     # Run the restoration algorithm (with or without momentum)
@@ -248,6 +257,9 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     os.makedirs(savepth, exist_ok = True)
     if '--B' in sys.argv:
         savepth = os.path.join(savepth, 'B_'+str(hparams.B))
+        os.makedirs(savepth, exist_ok = True)
+    if '--initialisation' in sys.argv:
+        savepth = os.path.join(savepth, 'initialisation_'+str(hparams.initialisation))
         os.makedirs(savepth, exist_ok = True)
     if '--nb_itr' in sys.argv:
         savepth = os.path.join(savepth, 'nb_itr_'+str(hparams.nb_itr))
