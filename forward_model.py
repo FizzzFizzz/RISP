@@ -75,6 +75,7 @@ def gen_data(self, clean_image, sigma = None, seed=0):
     else:
         raise ValueError("Forward Model not implemented")
 
+
 def data_fidelity_init(self, init = None):
     if self.Pb == 'deblurring':
         # Initialization of Gradient operator
@@ -112,6 +113,36 @@ def data_fidelity_init(self, init = None):
     else:
         raise ValueError("Forward Model not implemented")
 
+
+def A(self, x):
+    """
+    Calculation A*x with A the linear degradation operator 
+    """
+    if self.Pb == 'deblurring':
+        Ax = utils_sr.G(x, self.k_tensor, sf=1)
+    elif self.Pb == 'SR':
+        Ax = utils_sr.G(x, self.k_tensor, sf=self.sf)
+    elif self.Pb == 'inpainting':
+        Ax = self.M * x
+    elif self.Pb == 'MRI':
+        Ax = self.M[None,None,:,:] * fft2c(x)
+    elif self.Pb == 'despeckle':
+        Ax = x
+    else:
+        raise ValueError('degradation not implemented')
+    return Ax  
+
+
+def compute_data_fidelity(self, x, obs):
+    """
+    A function to compute the data-fidelity at point x with the observation obs.
+    """
+    Ax = A(self, x)
+    if self.noise_model == 'gaussian':
+        f = 0.5 * torch.norm(obs - Ax, p=2) ** 2
+    elif self.noise_model == 'speckle':
+        f = self.L*(Ax + torch.exp(obs - Ax)).sum()
+    return f
 
 def compute_data_grad(self, x, obs):
     if self.noise_model == 'gaussian':

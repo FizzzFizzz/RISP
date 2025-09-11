@@ -21,7 +21,7 @@ from forward_model import *
 
 
 class PnP(nn.Module):
-    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', sigma_obs = 0, save_frequency = 1, noise_model = "gaussian", sf = 1):
+    def __init__(self, nb_itr=50, denoiser_name = "GSDRUNet", n_channels = 3, device = 'cpu', Pb = 'deblurring', sigma_obs = 0, save_frequency = 1, dont_compute_potential = False, noise_model = "gaussian", sf = 1):
         '''
             nb_itr : number of iterations of the PnP algorithm
         '''
@@ -47,8 +47,10 @@ class PnP(nn.Module):
         self.sigma_obs = sigma_obs
         self.noise_model = noise_model
         self.sf = 1
+        self.denoiser_name = denoiser_name
         self.net = denoiser_net
         self.save_frequency = save_frequency
+        self.dont_compute_potential = dont_compute_potential
         
         # only test
         self.res = {}
@@ -121,6 +123,10 @@ class PnP(nn.Module):
             #Restarting criterion proposed by "Restarted Nonconvex Accelerated Gradient Descent: No More Polylogarithmic Factor in the O( 7 4) Complexity"
             restart_crit_li = 0
             j = 0
+        if self.denoiser_name[:8] == "GSDRUNet" and self.dont_compute_potential == False: # To compute the potential
+            self.g_list = []
+            self.f_list = []
+            self.F_list = []
 
         for k in tqdm(range(self.nb_itr)):
             x_old = x
@@ -137,6 +143,17 @@ class PnP(nn.Module):
 
             y = y.type(torch.cuda.FloatTensor)
             y_denoised = self.net.forward(y, sigma_den)
+
+            if self.denoiser_name[:8] == "GSDRUNet" and self.dont_compute_potential == False:
+                # Compute the function value at this point of the optimization
+                N = self.net.student_grad(y, sigma_den)
+                g = 0.5 * torch.norm((y - N).reshape(x.shape[0], -1), p=2, dim=-1) ** 2
+                self.g_list.append(g.item())
+                f = compute_data_fidelity(self, y, obs)
+                self.f_list.append(f.item())
+                F = g + lamb * f
+                self.F_list.append(F.item())
+
             reg_grad = y - y_denoised
 
             record = y_denoised - old_y_denoised

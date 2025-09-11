@@ -1,4 +1,4 @@
-python main.py --sigma_obs 1. --dont_save_images --stepsize 5.0 --nb_itr 1500 --denoiser_level 0.08 --lamb 5. --gpu_number 1 --dataset_name "CBSD68" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "inpainting" --p 0.2 --start_im_indx 39
+python main.py --sigma_obs 1. --stepsize 5.0 --nb_itr 50 --denoiser_level 0.08 --lamb 5. --gpu_number 1 --dataset_name "CBSD68" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "inpainting" --p 0.2
 
 
 # for i in 5 6 7 8 9 
