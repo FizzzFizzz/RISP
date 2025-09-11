@@ -289,6 +289,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         plt.savefig(savepth+"/{}_F_list.png".format(i))
     
     dict = {
+            'Pb' : hparams.Pb,
             'clean_image' : util.tensor2uint(clean_image),
             'observation' : util.tensor2uint(observation),
             'initial_uv' : initial_uv,
