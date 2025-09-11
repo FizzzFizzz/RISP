@@ -511,7 +511,7 @@ if pars.prep_fig == 6:
         for i in range(10):
             for j in range(nb_method):
                 stepsize = str(stepsize_method[j])
-                dic = np.load(path_result + path_method[j] + "/den_level_0.08/lamb_5.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                dic = np.load(path_result + path_method[j] + "/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
                 psnr_list[j].append(dic['psnr_list'])
                 
                 stack_im = dic['stack_images']
@@ -532,7 +532,6 @@ if pars.prep_fig == 6:
         'residuals' : residuals,
         }
     np.save(path_figure+"/result_inpainting_expe", dict)
-
 
 
 if pars.fig_number == 6:
@@ -561,8 +560,8 @@ if pars.fig_number == 6:
 
     # plt.plot([0, 50], [27.7, 27.7], linestyle = "--", color = 'gray')
 
-    plt.xlim(0,499)
-    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    plt.xlim(0,1499)
+    plt.xticks([0, 1499], ["0", "1500"], fontsize = size_number)
     plt.ylim(13,27)
     plt.yticks([13,27], ["13", "27"], fontsize = size_number)
     # plt.legend()
@@ -580,8 +579,8 @@ if pars.fig_number == 6:
         line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
         plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,499)
-    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    plt.xlim(0,1499)
+    plt.xticks([0, 1499], ["0", "1500"], fontsize = size_number)
 
     ticks = np.arange(-5, 1, 1)
     labels = [r"$10^{-5}$" if i == 0 else
@@ -841,6 +840,104 @@ if pars.fig_number == 9:
                 
             im = dic['stack_images'][itr_method[j]]
             im.save(path_figure+'images_MRI/im_'+str(i)+'_restored_'+str(itr_method[j])+'_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_list'][itr_method[j]])+'.png')
+
+
+if pars.prep_fig == 10:
+    # Preparate the plot of the convergence results of various methods for SR
+    path_result = "results/SR/CBSD10/"
+
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    stepsize_method = [0.7, 0.4, 10.0, 10.0]
+    nb_method = len(method_name)
+    psnr_list = [[] for _ in range(nb_method)]
+    residuals = [[] for _ in range(nb_method)]
+    for k in tqdm(range(10)):
+        path_method_1 = ["GD", "GD", "PGD", "PGD"]
+        path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+        for i in range(10):
+            for j in range(nb_method):
+                stepsize = str(stepsize_method[j])
+                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/sf_2/"+ path_method_2[j] +"den_level_0.03/lamb_10.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                psnr_list[j].append(dic['psnr_list'])
+                
+                stack_im = dic['stack_images']
+                ref = np.sum(np.array(stack_im[0])**2)
+                residuals_stack = []
+                for l in range(len(stack_im) - 1):
+                    residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+                residuals[j].append(residuals_stack)
+
+    psnr_list = np.array(psnr_list)
+    residuals = np.array(residuals)
+
+    dict = {
+        'psnr_list' : psnr_list,
+        'method_name' : method_name,
+        'nb_method' : nb_method,
+        'stepsize_method' : stepsize_method,
+        'residuals' : residuals,
+        }
+    np.save(path_figure+"/result_SR", dict)
+
+if pars.fig_number == 10:
+    # Generate figure for convergence of various methods for SR
+    dic = np.load(path_figure+"/result_SR.npy", allow_pickle=True).item()
+    
+    psnr_list = dic['psnr_list']
+    nb_method = dic['nb_method']
+    method_name = dic['method_name']
+    residuals = dic['residuals']
+
+    fig = plt.figure()
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    color_indx = [3, 1, 2, 0]
+
+    for j in range(nb_method):
+        psnr_mean = np.mean(psnr_list[j], axis = 0)
+        # convergence_time = np.sum(psnr_mean < 31)
+        # print(convergence_time)
+        psnr_std = np.std(psnr_list[j], axis = 0)
+        psnr_min = np.quantile(psnr_list[j], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+
+    size_number = 17
+
+    # plt.plot([0, 50], [31, 31], linestyle = "--", color = 'gray')
+
+    plt.xlim(0,250)
+    plt.xticks([0, 250], ["0", "250"], fontsize = size_number)
+    # plt.ylim(24,32)
+    # plt.yticks([24,32], ["24", "32"], fontsize = size_number)
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_PSNR_SR.png', dpi = 300)
+    plt.show()
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        residuals_mean = np.mean(np.log10(residuals[j] + 1e-15), axis = 0)
+        residuals_min = np.quantile(np.log10(residuals[j] + 1e-15), 0.25, axis = 0)
+        residuals_max = np.quantile(np.log10(residuals[j] + 1e-15), 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+
+    ticks = np.arange(-15, 1, 1)
+    labels = [r"$10^{-15}$" if i == 0 else
+            r"$10^0$" if i == len(ticks) - 1 else ""
+            for i in range(len(ticks))]
+    plt.yticks(ticks, labels, fontsize = size_number)
+    plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
+
+    # plt.legend()
+    fig.savefig(path_figure+'convergence_residuals_SR.png', dpi = 300)
+    plt.show()
+
 
 
 # if pars.fig_number == 2:

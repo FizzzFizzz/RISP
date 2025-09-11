@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
+import cv2
 import os
 from natsort import os_sorted
 import sys 
@@ -31,6 +32,17 @@ def gen_data(self, clean_image, sigma = None, seed=0):
         observation_without_noise = torch.abs(deblur.ifftn(temp))
         noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
         return (observation_without_noise + noise).to(self.device)
+    elif self.Pb == "SR":
+        # Degrade image
+        clean_image_np = np.float32(util.tensor2uint(clean_image) / 255.)
+        k_np = util.tensor2uint(self.kernel)
+        blur_im = utils_sr.numpy_degradation(clean_image_np, k_np, self.sf)
+        noise = np.random.normal(0, 1, blur_im.shape) * sigma / 255.
+        blur_im += noise
+        # Initialize the algorithm
+        init_im = cv2.resize(blur_im, (int(blur_im.shape[1] * self.sf), int(blur_im.shape[0] * self.sf)), interpolation=cv2.INTER_CUBIC)
+        init_im = utils_sr.shift_pixel(init_im, self.sf)
+        return util.uint2tensor4(blur_im).to(self.device), util.uint2tensor4(init_im).to(self.device)
     elif self.Pb == "rician":
         observation_without_noise = clean_image
         gen_real = torch.Generator()
@@ -106,6 +118,8 @@ def compute_data_grad(self, x, obs):
         if self.Pb == 'deblurring':
             data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
             data_grad = torch.real(deblur.ifftn(data_grad))
+        elif self.Pb == "SR":
+            data_grad = utils_sr.grad_solution_L2(x, obs, self.k_tensor, self.sf)
         elif self.Pb == 'inpainting':
             data_grad = 2 * self.M * (x - obs)
         elif self.Pb == 'MRI':
