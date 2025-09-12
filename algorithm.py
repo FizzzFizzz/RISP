@@ -127,6 +127,7 @@ class PnP(nn.Module):
             self.g_list = []
             self.f_list = []
             self.F_list = []
+            self.nabla_F_list = []
 
         for k in tqdm(range(self.nb_itr)):
             x_old = x
@@ -143,28 +144,30 @@ class PnP(nn.Module):
 
             y = y.type(torch.cuda.FloatTensor)
             y_denoised = self.net.forward(y, sigma_den)
+            reg_grad = y - y_denoised
 
             if self.denoiser_name[:8] == "GSDRUNet" and self.dont_compute_potential == False:
                 # Compute the function value at this point of the optimization
-                N = self.net.student_grad(y, sigma_den)
-                g = 0.5 * torch.norm((y - N).reshape(x.shape[0], -1), p=2, dim=-1) ** 2
+                x_test = x.type(torch.cuda.FloatTensor)
+                N = self.net.student_grad(x_test, sigma_den)
+                g = 0.5 * torch.norm((x_test - N).reshape(x.shape[0], -1), p=2, dim=-1) ** 2
                 self.g_list.append(g.item())
-                f = compute_data_fidelity(self, y, obs)
+                f = compute_data_fidelity(self, x_test, obs)
                 self.f_list.append(f.item())
                 F = g + lamb * f
                 self.F_list.append(F.item())
+                x_denoised = self.net.forward(x_test, sigma_den)
+                reg_grad_x = x_test - x_denoised
+                data_grad_x = compute_data_grad(self, x_test, obs)
+                nabla_F = np.sqrt(np.abs(torch.sum((reg_grad_x + lamb * data_grad_x)**2).item()))
+                self.nabla_F_list.append(nabla_F)
 
-            reg_grad = y - y_denoised
 
             record = y_denoised - old_y_denoised
             record = torch.mean(record*record)
             record = record / (torch.mean(initial_uv*initial_uv))
 
             if alg == "GD":
-                # print("reg")
-                # print(torch.sqrt(torch.sum(torch.abs(reg_grad)**2)))
-                # print("data")
-                # print(torch.sqrt(torch.sum(torch.abs(data_grad)**2)))
                 data_grad = compute_data_grad(self, y, obs)
                 grad = reg_grad + lamb * data_grad
                 x = y - stepsize*grad
@@ -186,7 +189,7 @@ class PnP(nn.Module):
                 else:
                     j += 1
             elif restarting_li:
-                restart_crit_li = restart_crit_li + torch.sum((x-x_old)**2).item()
+                restart_crit_li = restart_crit_li + np.abs(torch.sum((x-x_old)**2).item())
                 if j * restart_crit_li > B:
                     j = 0
                     if adapative_restart == True:

@@ -27,11 +27,15 @@ def gen_data(self, clean_image, sigma = None, seed=0):
     gen = torch.Generator()
     gen.manual_seed(seed)
     if self.Pb == "deblurring":
-        fft_k = deblur.p2o(self.kernel, clean_image.shape[-2:])
-        temp = fft_k * deblur.fftn(clean_image)
-        observation_without_noise = torch.abs(deblur.ifftn(temp))
-        noise = torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)*sigma / 255
-        return (observation_without_noise + noise).to(self.device)
+        fft_k = deblur.p2o(self.kernel, clean_image.shape[-2:]).to(self.device)
+        temp = fft_k.to(torch.complex64) * torch.fft.fft2(clean_image.to(torch.complex64))
+        temp = temp.contiguous()
+        temp_cpu = temp.detach().cpu().clone() # to avoid some possible CUDA error in the ifft2
+        obs_cpu = torch.fft.ifft2(temp_cpu)
+        observation_without_noise = obs_cpu.to(temp.device)
+        noise = (sigma / 255) * torch.normal(torch.zeros(observation_without_noise.size()), torch.ones(observation_without_noise.size()), generator = gen)
+        noise = noise.to(self.device)
+        return observation_without_noise + noise
     elif self.Pb == "SR":
         # Degrade image
         clean_image_np = np.float32(util.tensor2uint(clean_image) / 255.)
@@ -193,7 +197,7 @@ def data_fidelity_prox_step(self, x, y, stepsize):
             else :
                 px = self.M*y + (1-self.M)*x
         elif self.Pb == 'MRI':
-            px = ifft2c(((1/(1+self.stepsize))*self.M+self.neg_M)*(fft2c(x)+self.stepsize*self.M*y))
+            px = ifft2c(((1/(1+stepsize))*self.M+self.neg_M)*(fft2c(x)+stepsize*self.M*y))
         elif self.Pb == 'ODT':
             input = x
             uu = input.clone()

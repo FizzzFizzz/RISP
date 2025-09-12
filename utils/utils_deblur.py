@@ -133,11 +133,14 @@ def p2o(psf, shape):
     Returns:
         otf: NxCxHxW
     '''
-    otf = torch.zeros(psf.shape[:-2] + shape).type_as(psf)
-    otf[..., :psf.shape[2], :psf.shape[3]].copy_(psf)
+    device = psf.device
+    dtype = psf.dtype
+    otf = torch.zeros(psf.shape[:-2] + shape, dtype=dtype, device=device)
+    otf[..., :psf.shape[2], :psf.shape[3]] = psf
     for axis, axis_size in enumerate(psf.shape[2:]):
-        otf = torch.roll(otf, -int(axis_size / 2), dims=axis+2)
-    return torch.fft.fftn(otf, dim=(-2, -1))
+        otf = torch.roll(otf, -axis_size // 2, dims=axis+2)
+    otf = torch.fft.fftn(otf, dim=(-2, -1))
+    return otf
 
 
 

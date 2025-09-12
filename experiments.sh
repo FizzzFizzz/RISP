@@ -1,14 +1,18 @@
-python main.py --sigma_obs 1. --stepsize 5.0 --nb_itr 50 --denoiser_level 0.08 --lamb 5. --gpu_number 1 --dataset_name "CBSD68" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "inpainting" --p 0.2
+# python main.py --sigma_obs 1. --dont_save_images --stepsize 0.7 --nb_itr 500 --denoiser_level 0.01 --lamb 1. --gpu_number 0 --dataset_name "MRI_knee" --denoiser_name "GSDRUNet_grayscale" --alg "GD" --Pb "MRI" --reduction_factor 4
+# python main.py --sigma_obs 1. --dont_save_images --stepsize 0.7 --nb_itr 500 --denoiser_level 0.01 --lamb 1. --gpu_number 0 --dataset_name "MRI_knee" --denoiser_name "GSDRUNet_grayscale" --momentum --theta 0.2 --restarting_li --alg "GD" --Pb "MRI" --reduction_factor 4
+# python main.py --sigma_obs 1. --dont_save_images --stepsize 2.0 --nb_itr 500 --denoiser_level 0.01 --lamb 1. --gpu_number 1 --dataset_name "MRI_knee" --denoiser_name "GSDRUNet_grayscale" --alg "PGD" --Pb "MRI" --reduction_factor 4
+# python main.py --sigma_obs 1. --dont_save_images --stepsize 1.0 --nb_itr 500 --denoiser_level 0.01 --lamb 1. --gpu_number 1 --dataset_name "MRI_knee" --denoiser_name "GSDRUNet_grayscale" --momentum --theta 0.2 --restarting_li --alg "PGD" --Pb "MRI" --reduction_factor 4
 
 
-# for i in 5 6 7 8 9 
-# do
-#     python main.py --sigma_obs 1. --dont_save_images --kernel_index $i --stepsize 0.7 --nb_itr 500 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR" --sf 2
-#     python main.py --sigma_obs 1. --dont_save_images --kernel_index $i --stepsize 10.0 --nb_itr 500 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "SR" --sf 2
-#     python main.py --sigma_obs 1. --dont_save_images --kernel_index $i --stepsize 0.4 --nb_itr 500 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --momentum --theta 0.2 --restarting_li --Pb "SR" --sf 2
-#     python main.py --sigma_obs 1. --dont_save_images --kernel_index $i --stepsize 10.0 --nb_itr 500 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --momentum --theta 0.2 --restarting_li --Pb "SR" --sf 2
-# done
+for i in 0 9 
+do
+    python main.py --dont_save_images --nb_itr 500 --sigma_obs 1. --kernel_index $i --stepsize 0.7 --denoiser_level 0.03 --lamb 10. --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --Pb "SR"
+    python main.py --dont_save_images --nb_itr 500 --sigma_obs 1. --kernel_index $i --stepsize 0.4 --denoiser_level 0.03 --lamb 10. --gpu_number 1 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "GD" --momentum --theta 0.2 --restarting_li --Pb "SR"
+    # python main.py --dont_save_images --nb_itr 500 --sigma_obs 1. --kernel_index $i --stepsize 10.0 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "SR"
+    # python main.py --dont_save_images --nb_itr 500 --sigma_obs 1. --kernel_index $i --stepsize 10.0 --denoiser_level 0.03 --lamb 10. --gpu_number 0 --dataset_name "CBSD10" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --momentum --theta 0.2 --restarting_li --Pb "SR"
+done
 
+# python main.py --sigma_obs 1. --stepsize 5.0 --nb_itr 50 --denoiser_level 0.08 --lamb 5. --gpu_number 1 --dataset_name "CBSD68" --denoiser_name "GSDRUNet_SoftPlus" --alg "PGD" --Pb "inpainting" --p 0.2
 
 
 # do

@@ -182,7 +182,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
     time_restore = time()
     # Run the restoration algorithm (with or without momentum)
     with torch.no_grad():
-        model.forward(initial_uv, observation, clean_image, hparams.sigma_obs, hparams.lamb, hparams.denoiser_level, hparams.theta, hparams.r, hparams.B, hparams.Nesterov, momentum, hparams.restarting_su, hparams.restarting_li, hparams.stepsize, hparams.alg)
+        model.forward(initial_uv, observation, clean_image, hparams.sigma_obs, hparams.lamb, hparams.denoiser_level, hparams.theta, hparams.r, hparams.B, hparams.Nesterov, hparams.momentum, hparams.restarting_su, hparams.restarting_li, hparams.stepsize, hparams.alg)
     time_restore = time() - time_restore
     print("The time of restoration is : ", time_restore)
 
@@ -351,6 +351,7 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         dict['g_list'] = model.g_list
         dict['f_list'] = model.f_list
         dict['F_list'] = model.F_list
+        dict['nabla_F_list'] = model.nabla_F_list
     
     np.save(savepth+"/dict_results_{}".format(i), dict)
 
