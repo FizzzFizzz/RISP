@@ -354,13 +354,6 @@ def full_propagate_to_sensor(f, utot_dom_set, sensor_greens_function_set, dx, dy
     """
     num_trans = utot_dom_set.shape[2]
     num_rec = sensor_greens_function_set.shape[2]
-
-    # editted by wdl:
-    # print(f[0, 0].device)
-    # print(utot_dom_set.device)
-    # f.to(device)
-
-
     contSrc = f[0, 0].unsqueeze(-1) * utot_dom_set    # (Ny x Nx x numTrans)
     conjSrc = torch.conj(contSrc).reshape(-1, num_trans)    # (Ny x Nx, numTrans)
     sensor_greens_func = sensor_greens_function_set.reshape(-1, num_rec)    # (Ny x Nx, numRec)
@@ -398,13 +391,8 @@ class InverseScatter(BaseOperator):
             uscat_pred_set - (batch_size, numTrans, numRec) predicted scattered fields, torch.Tensor, complex64
         '''
         f = f.to(torch.float64)
-        # print('We are Here!!!')
-        # f range should be [-1,1]
-        # print('WDL Test, inverse_scatter.py, forward, print f range: ', [torch.min(f),torch.max(f)])
         if unnormalize:
             f = self.unnormalize(f)
-        # print('WDL Test, inverse_scatter.py, forward, print f range: ', [torch.min(f),torch.max(f)])
-        # Linear inverse scattering
         uscat_pred_set = full_propagate_to_sensor(f, self.uinc_dom_set[..., 0], self.sensor_greens_function_set[..., 0], 
                                                   self.dx, self.dy)
         return uscat_pred_set.unsqueeze(0)
@@ -418,7 +406,6 @@ class InverseScatter(BaseOperator):
             loss - data consistency loss, (batch_size,), scalar, float32
         '''
         uscat_pred_set = self.forward(pred)
-        # print('WDL Test, loss, print pred range: ', [torch.min(pred),torch.max(pred)])
         diff = uscat_pred_set - observation
         squared_diff = diff * diff.conj()
         loss = torch.sum(squared_diff, dim=(1, 2)).to(torch.float64) # Use torch.float64 for numerical stability

@@ -48,24 +48,6 @@ class BaseOperator(ABC):
             pred_tmp = pred.clone().detach().requires_grad_(True)
             loss = self.loss(pred_tmp, observation).sum()
             pred_grad = grad(loss, pred_tmp)[0]
-            print('WDL Test, base.py, gradient, pred_grad range: ', [torch.min(pred_grad),torch.max(pred_grad)])
-            
-            # pred_grad = torch.clamp(pred_grad, -1e-6, 1e-6)
-            
-            # # print('WDL Test, gradient, pred.shape: ', pred.shape)
-            # obs = observation.clone()
-            # pred_tmp = pred.clone().detach()
-
-            # pred_tmp = pred_tmp.requires_grad_(True)
-            # # print('WDL Test, gradient, pred.shape: ', pred.shape)
-            # loss = self.loss(pred_tmp, obs).sum()
-            # # print('WDL Test, gradient, loss: ', loss)
-            # # pred_grad = grad(loss, pred_tmp)[0]
-            # a = grad(loss, pred_tmp)
-            # pred_tmp = pred_tmp.requires_grad_(False)
-            # pred_grad = a[0]
-            # # print('WDL Test, gradient, pred_grad.shape: ', pred_grad.shape)
-
         with torch.no_grad():
             if return_loss:
                 return pred_grad, loss
@@ -81,8 +63,6 @@ class BaseOperator(ABC):
         Returns:
             - loss (torch.tensor): loss value, shape (batch_size, )
         """
-        print('yes, we are in base.py, function loss')
-        print('WDL Test, loss, print pred range: ', [torch.min(pred),torch.max(pred)])
         return (self.forward(pred) - observation).square().flatten(start_dim=1).sum(dim=1)
     
     def loss_m(self, measurements, observation):
