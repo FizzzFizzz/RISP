@@ -21,7 +21,7 @@ from utils.inverse_scatter import InverseScatter # for ODT
 
 parser = ArgumentParser()
 parser.add_argument('--denoiser_name', type=str, default="GSDRUNet", help = "Type of denoiser, DRUNet, GSDRUNet or GSDRUNet_SoftPlus are implemented")
-parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, ODT")
+parser.add_argument('--Pb', type=str, default="deblurring", help = "Inverse problem to tackle: deblurring, inpainting, SR, MRI, rician, ODT")
 parser.add_argument('--gpu_number', type=int, default=0, help = "the GPU number")
 parser.add_argument('--Nesterov', dest='Nesterov', action='store_true')
 parser.set_defaults(Nesterov=False)
@@ -51,9 +51,9 @@ parser.add_argument('--kernel_index', type=int, default=5, help = "Index of the 
 parser.add_argument('--sf', default=1, type=int, help = "Super-resolution factor")
 parser.add_argument('--stepsize', type=float, default=0.02, help = "Stepsize of the gradient descent algorithm")
 parser.add_argument('--nb_itr', type=int, default=50, help = "Number of iterations of the algorithm")
-parser.add_argument('--theta', type=float, default=0.9, help = "Momentum parameter")
+parser.add_argument('--theta', type=float, default=0.2, help = "Momentum parameter")
 parser.add_argument('--start_im_indx', type=int, default=0, help = "Rank of the image to start from in the dataset")
-parser.add_argument('--p', type=float, default=0.5, help = "Proportion of viewed pixels for inpainting with random mask")
+parser.add_argument('--p', type=float, default=0.2, help = "Proportion of viewed pixels for inpainting with random mask")
 parser.add_argument('--L', type=int, default=10, help = "Number of looks for image depseckling")
 parser.add_argument('--reduction_factor', type=int, default=8, help = "Factor of acceleration for MRI")
 parser.add_argument('--dont_compute_potential', dest='dont_compute_potential', action='store_true')
@@ -250,8 +250,6 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         savepth = os.path.join(savepth, 'stepsize_'+str(hparams.stepsize))
         os.makedirs(savepth, exist_ok = True)
 
-    print("Results are saved in the path : ", savepth)
-
     if not(hparams.dont_save_images):
         if grayscale :
             colormap = 'gray'
@@ -354,5 +352,6 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         dict['nabla_F_list'] = model.nabla_F_list
     
     np.save(savepth+"/dict_results_{}".format(i), dict)
+    print("Results are saved in the path : ", savepth+"/dict_results_{}".format(i))
 
 print("Average restored PSNR on the dataset = {:.2f}".format(Average_PSNR / len(input_paths)))

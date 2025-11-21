@@ -83,18 +83,15 @@ def gen_data(self, clean_image, sigma = None, seed=0):
 def data_fidelity_init(self, init = None):
     if self.Pb == 'deblurring':
         # Initialization of Gradient operator
-        fft_k = deblur.p2o(self.kernel, init.shape[-2:])
+        fft_k = deblur.p2o(self.kernel, self.observation.shape[-2:])
+        self.fft_k = fft_k
         fft_kH = torch.conj(fft_k)
+        self.fft_kH = fft_kH
         abs_k = fft_kH * fft_k
         self.abs_k = abs_k
-        self.fft_kH = fft_kH
-        # Initialization of Proximal operator
-        self.k_tensor = torch.tensor(self.kernel).to(self.device)
-        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(self.observation, self.k_tensor, self.sf)
     elif self.Pb == 'SR':
         # Initialization of Proximal operator
-        self.k_tensor = torch.tensor(self.kernel).to(self.device)
-        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(self.observation, self.k_tensor, self.sf)
+        self.FB, self.FBC, self.F2B, self.FBFy = utils_sr.pre_calculate_prox(self.observation, self.kernel, self.sf)
     elif self.Pb == 'inpainting':
         self.M = (self.mask).clone()
     elif self.Pb == "MRI":
@@ -123,9 +120,9 @@ def A(self, x):
     Calculation A*x with A the linear degradation operator 
     """
     if self.Pb == 'deblurring':
-        Ax = utils_sr.G(x, self.k_tensor, sf=1)
+        Ax = torch.real(deblur.ifftn(self.fft_k * deblur.fftn(x)))
     elif self.Pb == 'SR':
-        Ax = utils_sr.G(x, self.k_tensor, sf=self.sf)
+        Ax = utils_sr.G(x, self.kernel, sf=self.sf)
     elif self.Pb == 'inpainting':
         Ax = self.M * x
     elif self.Pb == 'MRI':
@@ -154,9 +151,9 @@ def compute_data_grad(self, x, obs):
             data_grad = self.abs_k * deblur.fftn(x) - self.fft_kH * deblur.fftn(obs)
             data_grad = torch.real(deblur.ifftn(data_grad))
         elif self.Pb == "SR":
-            data_grad = utils_sr.grad_solution_L2(x, obs, self.k_tensor, self.sf)
+            data_grad = utils_sr.grad_solution_L2(x, obs, self.kernel, self.sf)
         elif self.Pb == 'inpainting':
-            data_grad = 2 * self.M * (x - obs)
+            data_grad = self.M * (x - obs)
         elif self.Pb == 'MRI':
             data_grad = torch.real(ifft2c(self.M * (fft2c(x) - obs)))
         elif self.Pb == 'ODT':
@@ -189,7 +186,12 @@ def data_fidelity_prox_step(self, x, y, stepsize):
     Calculation of the proximal step on the data-fidelity term f
     '''
     if self.noise_model == 'gaussian':
-        if self.Pb == 'deblurring' or self.Pb == 'SR':
+        if self.Pb == 'deblurring':
+            num = (stepsize * self.fft_kH * deblur.fftn(y) + deblur.fftn(x))
+            den = 1 + stepsize * self.abs_k
+            px_fourier = num / den
+            px = torch.real(deblur.ifftn(px_fourier))
+        elif self.Pb == 'SR':
             px = utils_sr.prox_solution_L2(x, self.FB, self.FBC, self.F2B, self.FBFy, stepsize, self.sf)
         elif self.Pb == 'inpainting':
             if self.sigma_obs > 1e-2:

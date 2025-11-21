@@ -71,14 +71,10 @@ class PnP(nn.Module):
         self.res['ssim'][i] = ssim
         self.res['residuals'][i] = record
         pre_i = torch.clamp(u, 0., 1.)
-
-        # We cannot store all results by ODT, it's too many.
-        # self.res['image'][i] = ToPILImage()(pre_i[0])
-        
+        # To reduce the weights of stored images
         if i % self.save_frequency == 0:
-                self.res['image'][i] = ToPILImage()(pre_i[0])
-        
-            # self.res['image'][i] = ToPILImage()(pre_i[0])
+            self.res['image'][i] = ToPILImage()(pre_i[0])
+
 
     def forward(self, initial_uv, obs, clean, sigma_obs, lamb=690, denoiser_sigma=25./255., theta = 0.9, r=3, B = 5000., Nesterov = False, momentum = False, restarting_su = False, restarting_li = False, stepsize = 0.02, alg = "GD",adapative_restart = False,adapative_restart_factor = 0.5):
         '''
@@ -101,15 +97,14 @@ class PnP(nn.Module):
                         if alg == "PGD", a gradient is computed on the regularization and a proximal-step on the data-fidelity
         '''
         # init
-        u  = initial_uv
         self.obs = obs
         data_fidelity_init(self, init = initial_uv) # Initialize the data-fidelity operators
         self.nb_restart_activ = 0
 
         self.lamb = lamb
-        y_denoised = u
-        x = u
-        y = u
+        y_denoised = initial_uv
+        x = initial_uv
+        y = initial_uv
         record = y_denoised - y_denoised
         record = torch.mean(record*record)
         out = y_denoised
@@ -130,7 +125,7 @@ class PnP(nn.Module):
             self.nabla_F_list = []
 
         for k in tqdm(range(self.nb_itr)):
-            x_old = x
+            x_old = x.clone()
             self.get_psnr_i(record, torch.clamp(torch.real(out), min = -0., max =1.), clean, k)
 
             if self.Pb == "inpainting" and k < 10:
@@ -139,8 +134,6 @@ class PnP(nn.Module):
             #     sigma_den = denoiser_sigma/2
             else:
                 sigma_den = denoiser_sigma
-
-            old_y_denoised = y_denoised
 
             y = y.type(torch.cuda.FloatTensor)
             y_denoised = self.net.forward(y, sigma_den)
@@ -161,11 +154,6 @@ class PnP(nn.Module):
                 data_grad_x = compute_data_grad(self, x_test, obs)
                 nabla_F = np.sqrt(np.abs(torch.sum((reg_grad_x + lamb * data_grad_x)**2).item()))
                 self.nabla_F_list.append(nabla_F)
-
-
-            record = y_denoised - old_y_denoised
-            record = torch.mean(record*record)
-            record = record / (torch.mean(initial_uv*initial_uv))
 
             if alg == "GD":
                 data_grad = compute_data_grad(self, y, obs)
@@ -211,4 +199,9 @@ class PnP(nn.Module):
                 y = x + (1-theta)*(x - x_old)
             else:
                 y = x
+            
+            record = x - x_old
+            record = torch.mean(record*record)
+            record = record / (torch.mean(initial_uv*initial_uv))
+            
         self.get_psnr_i(record, torch.clamp(torch.real(out), min = -0., max =1.), clean, self.nb_itr) # put the last iterate at the end of the stack

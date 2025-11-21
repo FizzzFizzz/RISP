@@ -126,11 +126,12 @@ if pars.prep_fig == 2:
     nabla_F_list = [[] for _ in range(nb_method)]
 
     for k in tqdm(range(10)):
-        path_method = ["GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/"]
+        path_method_1 = ["GD", "GD", "PGD", "PGD"]
+        path_method_2 = ["", "/Momentum/theta_0.2/restarting_li/", "", "/Momentum/theta_0.2/restarting_li/"]
         for i in range(10):
             for j in range(nb_method):
                 stepsize = str(stepsize_method[j])
-                dic = np.load(path_result + path_method[j] + "/den_level_0.1/lamb_15.0/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                dic = np.load(path_result + path_method_1[j] + "/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k) + path_method_2[j] + "/den_level_0.1/lamb_15.0/nb_itr_200/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
                 psnr_list[j].append(dic['psnr_list'])
                 F_list[j].append(dic['F_list'])
                 f_list[j].append(dic['f_list'])
@@ -196,8 +197,8 @@ if pars.fig_number == 2:
 
     # plt.plot([0, 50], [27.7, 27.7], linestyle = "--", color = 'gray')
 
-    plt.xlim(0,49)
-    plt.xticks([0, 9, 20, 38, 49], ["0", "9", "20", "38", "50"], fontsize = size_number)
+    # plt.xlim(0,49)
+    # plt.xticks([0, 9, 20, 38, 49], ["0", "9", "20", "38", "50"], fontsize = size_number)
     plt.ylim(18,29)
     plt.yticks([18, 29], ["18", "29"], fontsize = size_number)
     # plt.legend()
@@ -213,10 +214,10 @@ if pars.fig_number == 2:
         residuals_min = np.quantile(np.log10(residuals[j]), 0.25, axis = 0)
         residuals_max = np.quantile(np.log10(residuals[j]), 0.75, axis = 0)
         line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+    # plt.xlim(0,49)
+    # plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
 
     ticks = np.arange(-5, 1, 1)
     labels = [r"$10^{-5}$" if i == 0 else
@@ -237,10 +238,10 @@ if pars.fig_number == 2:
         f_list_min = np.quantile(f_list[j], 0.25, axis = 0)
         f_list_max = np.quantile(f_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(f_list_mean)), f_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+    # plt.xlim(0,49)
+    # plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
 
     plt.ylabel(r"$f$", fontsize = size_number)
 
@@ -258,10 +259,10 @@ if pars.fig_number == 2:
         g_list_min = np.quantile(g_list[j], 0.25, axis = 0)
         g_list_max = np.quantile(g_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(g_list_mean)), g_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+    # plt.xlim(0,49)
+    # plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
 
     plt.ylabel(r"$g$", fontsize = size_number)
 
@@ -279,14 +280,14 @@ if pars.fig_number == 2:
         F_list_min = np.quantile(F_list[j], 0.25, axis = 0)
         F_list_max = np.quantile(F_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(F_list_mean)), F_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+    # plt.xlim(0,49)
+    # plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
 
     plt.ylabel(r"$F = \lambda f + g$", fontsize = size_number)
 
-    plt.legend()
+    # plt.legend()
     plt.title(r"Convergence F for deblurring")
     fig.savefig(path_figure+'convergence_F_deblurring.png', dpi = 300)
     plt.show()
@@ -298,11 +299,11 @@ if pars.fig_number == 2:
         nabla_F_list_min = np.quantile(nabla_F_list[j], 0.25, axis = 0)
         nabla_F_list_max = np.quantile(nabla_F_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(nabla_F_list_mean)), nabla_F_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
-
+    # plt.xlim(0,49)
+    # plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+    plt.yscale("log")
     plt.ylabel(r"$\|\nabla F(x^k)\|$", fontsize = size_number)
 
     plt.legend()
@@ -526,7 +527,7 @@ if pars.prep_fig == 6:
     nabla_F_list = [[] for _ in range(nb_method)]
 
     path_method = ["GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/", "GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/Momentum/theta_0.2/restarting_li/", "PGD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/", "PGD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/Momentum/theta_0.2/restarting_li/"]
-    for i in tqdm(range(10)):
+    for i in tqdm(range(68)):
         for j in range(nb_method):
             stepsize = str(stepsize_method[j])
             dic = np.load(path_result + path_method[j] + "/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
@@ -536,12 +537,12 @@ if pars.prep_fig == 6:
             g_list[j].append(dic['g_list'])
             nabla_F_list[j].append(dic['nabla_F_list'])
             
-            stack_im = dic['stack_images']
-            ref = np.sum(np.array(stack_im[0])**2)
-            residuals_stack = []
-            for l in range(len(stack_im) - 1):
-                residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
-            residuals[j].append(residuals_stack)
+            # stack_im = dic['stack_images']
+            # ref = np.sum(np.array(stack_im[0])**2)
+            # residuals_stack = []
+            # for l in range(len(stack_im) - 1):
+            #     residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+            # residuals[j].append(residuals_stack)
 
     psnr_list = np.array(psnr_list)
     f_list = np.array(f_list)
@@ -605,29 +606,29 @@ if pars.fig_number == 6:
     plt.show()
 
 
-    fig = plt.figure()
+    # fig = plt.figure()
     
-    for j in range(nb_method):
-        residuals_mean = np.mean(np.log10(residuals[j]), axis = 0)
-        residuals_min = np.quantile(np.log10(residuals[j]), 0.25, axis = 0)
-        residuals_max = np.quantile(np.log10(residuals[j]), 0.75, axis = 0)
-        line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+    # for j in range(nb_method):
+    #     residuals_mean = np.mean(np.log10(residuals[j]), axis = 0)
+    #     residuals_min = np.quantile(np.log10(residuals[j]), 0.25, axis = 0)
+    #     residuals_max = np.quantile(np.log10(residuals[j]), 0.75, axis = 0)
+    #     line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
+    #     plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,1499)
-    plt.xticks([0, 1499], ["0", "1500"], fontsize = size_number)
+    # plt.xlim(0,1499)
+    # plt.xticks([0, 1499], ["0", "1500"], fontsize = size_number)
 
-    # ticks = np.arange(-5, 1, 1)
-    # labels = [r"$10^{-5}$" if i == 0 else
-    #         r"$10^0$" if i == len(ticks) - 1 else ""
-    #         for i in range(len(ticks))]
-    # plt.yticks(ticks, labels, fontsize = size_number)
-    plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
+    # # ticks = np.arange(-5, 1, 1)
+    # # labels = [r"$10^{-5}$" if i == 0 else
+    # #         r"$10^0$" if i == len(ticks) - 1 else ""
+    # #         for i in range(len(ticks))]
+    # # plt.yticks(ticks, labels, fontsize = size_number)
+    # plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
 
-    # plt.legend()
-    # plt.title(r"Convergence residuals for inpainting")
-    fig.savefig(path_figure+'convergence_residuals_inpainting.png', dpi = 300)
-    plt.show()
+    # # plt.legend()
+    # # plt.title(r"Convergence residuals for inpainting")
+    # fig.savefig(path_figure+'convergence_residuals_inpainting.png', dpi = 300)
+    # plt.show()
 
 
     fig = plt.figure()
@@ -637,10 +638,7 @@ if pars.fig_number == 6:
         f_list_min = np.quantile(f_list[j], 0.25, axis = 0)
         f_list_max = np.quantile(f_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(f_list_mean)), f_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
-
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+        # plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
 
     plt.ylabel(r"$f$", fontsize = size_number)
 
@@ -658,10 +656,8 @@ if pars.fig_number == 6:
         g_list_min = np.quantile(g_list[j], 0.25, axis = 0)
         g_list_max = np.quantile(g_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(g_list_mean)), g_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
 
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
 
     plt.ylabel(r"$g$", fontsize = size_number)
 
@@ -679,10 +675,7 @@ if pars.fig_number == 6:
         F_list_min = np.quantile(F_list[j], 0.25, axis = 0)
         F_list_max = np.quantile(F_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(F_list_mean)), F_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
-
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+        # plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
 
     plt.ylabel(r"$F = \lambda f + g$", fontsize = size_number)
 
@@ -695,42 +688,45 @@ if pars.fig_number == 6:
     
     for j in range(nb_method):
         nabla_F_list_mean = np.mean(nabla_F_list[j], axis = 0)
+        test = np.argmax(nabla_F_list[j], axis = 0)
+        if j == 3:
+            print(test)
+            vals, counts = np.unique(test, return_counts=True)
+            print("Valeurs distinctes :", vals)
+            print("Nombre d'occurrences :", counts)
         nabla_F_list_min = np.quantile(nabla_F_list[j], 0.25, axis = 0)
         nabla_F_list_max = np.quantile(nabla_F_list[j], 0.75, axis = 0)
         line, = plt.plot(np.arange(len(nabla_F_list_mean)), nabla_F_list_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
-
-    plt.xlim(0,49)
-    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
-
+        # plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
+    
     plt.ylabel(r"$\|\nabla F(x^k)\|$", fontsize = size_number)
-
+    plt.yscale("log")
     plt.legend()
     plt.title(r"Convergence nabla F for inpainting")
     fig.savefig(path_figure+'convergence_nabla_F_inpainting.png', dpi = 300)
     plt.show()
 
-if pars.fig_number == 7:
-    path_result = "results/deblurring/CBSD10/"
-    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
-    save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
-    stepsize_method = [0.1, 0.07, 2.0, 5.0]
-    nb_method = len(method_name)
-    psnr_list = [[] for _ in range(nb_method)]
-    residuals = [[] for _ in range(nb_method)]
-    i = 9
-    k = 0
-    path_method = ["GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/"]
-    for j in range(nb_method):
-        stepsize = str(stepsize_method[j])
-        dic = np.load(path_result + path_method[j] + "/den_level_0.1/lamb_15.0/nb_itr_9/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+# if pars.fig_number == 7:
+#     path_result = "results/deblurring/CBSD10/"
+#     method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+#     save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
+#     stepsize_method = [0.1, 0.07, 2.0, 5.0]
+#     nb_method = len(method_name)
+#     psnr_list = [[] for _ in range(nb_method)]
+#     residuals = [[] for _ in range(nb_method)]
+#     i = 9
+#     k = 0
+#     path_method = ["GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "GD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/", "PGD/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/Momentum/theta_0.2/restarting_li/"]
+#     for j in range(nb_method):
+#         stepsize = str(stepsize_method[j])
+#         dic = np.load(path_result + path_method[j] + "/den_level_0.1/lamb_15.0/nb_itr_9/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
         
-        im = dic['restored']
-        # print(im.shape())
-        # print(np.max(im))
-        # print(np.min(im))
-        # plt.imsave(path_figure+'restored_9_itr_'+save_name[j]+'.png', im)
-        im.save(path_figure+'restored_9_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_restored'])+'.png')
+#         im = dic['restored']
+#         # print(im.shape())
+#         # print(np.max(im))
+#         # print(np.min(im))
+#         # plt.imsave(path_figure+'restored_9_itr_'+save_name[j]+'.png', im)
+#         im.save(path_figure+'restored_9_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_restored'])+'.png')
 
 
 
@@ -743,28 +739,44 @@ if pars.prep_fig == 7:
     nb_method = len(method_name)
     psnr_list = [[] for _ in range(nb_method)]
     residuals = [[] for _ in range(nb_method)]
+    F_list = [[] for _ in range(nb_method)]
+    f_list = [[] for _ in range(nb_method)]
+    g_list = [[] for _ in range(nb_method)]
+    nabla_F_list = [[] for _ in range(nb_method)]
 
-    for k in tqdm(range(10)):
-        path_method_1 = ["GD", "GD", "PGD", "PGD"]
-        path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
-        for i in range(10):
-            for j in range(nb_method):
-                stepsize = str(stepsize_method[j])
-                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_4/"+ path_method_2[j] +"den_level_0.01/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
-                psnr_list[j].append(dic['psnr_list'])
-                
-                stack_im = dic['stack_images']
-                ref = np.sum(np.array(stack_im[0])**2)
-                residuals_stack = []
-                for l in range(len(stack_im) - 1):
-                    residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
-                residuals[j].append(residuals_stack)
+    path_method_1 = ["GD", "GD", "PGD", "PGD"]
+    path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+    for i in tqdm(range(10)):
+        for j in range(nb_method):
+            stepsize = str(stepsize_method[j])
+            dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_4/"+ path_method_2[j] +"den_level_0.01/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list[j].append(dic['psnr_list'])
+            F_list[j].append(dic['F_list'])
+            f_list[j].append(dic['f_list'])
+            g_list[j].append(dic['g_list'])
+            nabla_F_list[j].append(dic['nabla_F_list'])
+            
+            stack_im = dic['stack_images']
+            ref = np.sum(np.array(stack_im[0])**2)
+            residuals_stack = []
+            for l in range(len(stack_im) - 1):
+                residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+            residuals[j].append(residuals_stack)
 
     psnr_list = np.array(psnr_list)
+    f_list = np.array(f_list)
+    g_list = np.array(g_list)
+    F_list = np.array(F_list)
+    nabla_F_list = np.array(nabla_F_list)
     residuals = np.array(residuals)
 
     dict = {
         'psnr_list' : psnr_list,
+        'f_list' : f_list,
+        'g_list' : g_list,
+        'F_list' : F_list,
+        'nabla_F_list' : F_list,
+        'nabla_F_list' : nabla_F_list,
         'method_name' : method_name,
         'nb_method' : nb_method,
         'stepsize_method' : stepsize_method,
@@ -782,6 +794,10 @@ if pars.fig_number == 7:
     nb_method = dic['nb_method']
     method_name = dic['method_name']
     residuals = dic['residuals']
+    f_list = dic['f_list']
+    g_list = dic['g_list']
+    F_list = dic['F_list']
+    nabla_F_list = dic['nabla_F_list']
 
     fig = plt.figure()
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -821,15 +837,93 @@ if pars.fig_number == 7:
     plt.xlim(0,499)
     plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
 
-    ticks = np.arange(-15, 1, 1)
-    labels = [r"$10^{-15}$" if i == 0 else
-            r"$10^0$" if i == len(ticks) - 1 else ""
-            for i in range(len(ticks))]
-    plt.yticks(ticks, labels, fontsize = size_number)
-    plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
+    # ticks = np.arange(-15, 1, 1)
+    # labels = [r"$10^{-15}$" if i == 0 else
+    #         r"$10^0$" if i == len(ticks) - 1 else ""
+    #         for i in range(len(ticks))]
+    # plt.yticks(ticks, labels, fontsize = size_number)
+    # plt.ylabel(r"$\|x^{k+1} - x^k\|^2 / \|x^0\|^2$", labelpad=-10, fontsize = size_number)
 
     # plt.legend()
     fig.savefig(path_figure+'convergence_residuals_MRI_reduction_factor_4.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        f_list_mean = np.mean(f_list[j], axis = 0)
+        f_list_min = np.quantile(f_list[j], 0.25, axis = 0)
+        f_list_max = np.quantile(f_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(f_list_mean)), f_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$f$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence f for MRI_4_factor")
+    fig.savefig(path_figure+'convergence_f_MRI_4_factor.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        g_list_mean = np.mean(g_list[j], axis = 0)
+        g_list_min = np.quantile(g_list[j], 0.25, axis = 0)
+        g_list_max = np.quantile(g_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(g_list_mean)), g_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence g for MRI_4_factor")
+    fig.savefig(path_figure+'convergence_g_MRI_4_factor.png', dpi = 300)
+    plt.show()
+
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        F_list_mean = np.mean(F_list[j], axis = 0)
+        F_list_min = np.quantile(F_list[j], 0.25, axis = 0)
+        F_list_max = np.quantile(F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(F_list_mean)), F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$F = \lambda f + g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence F for MRI_4_factor")
+    fig.savefig(path_figure+'convergence_F_MRI_4_factor.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        nabla_F_list_mean = np.mean(nabla_F_list[j], axis = 0)
+        nabla_F_list_min = np.quantile(nabla_F_list[j], 0.25, axis = 0)
+        nabla_F_list_max = np.quantile(nabla_F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(nabla_F_list_mean)), nabla_F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$\|\nabla F(x^k)\|$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence nabla F for MRI 4 factor")
+    fig.savefig(path_figure+'convergence_nabla_F_MRI_4_factor.png', dpi = 300)
     plt.show()
 
 
@@ -838,38 +932,58 @@ if pars.prep_fig == 8:
     path_result = "results/MRI/MRI_knee/"
 
     method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
-    stepsize_method = [0.7, 0.7, 2.0, 1.0]
+    stepsize_method = [0.7, 0.4, 1.0, 1.0]
     nb_method = len(method_name)
     psnr_list = [[] for _ in range(nb_method)]
     residuals = [[] for _ in range(nb_method)]
+    F_list = [[] for _ in range(nb_method)]
+    f_list = [[] for _ in range(nb_method)]
+    g_list = [[] for _ in range(nb_method)]
+    nabla_F_list = [[] for _ in range(nb_method)]
 
-    for k in tqdm(range(10)):
-        path_method_1 = ["GD", "GD", "PGD", "PGD"]
-        path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
-        for i in range(10):
-            for j in range(nb_method):
-                stepsize = str(stepsize_method[j])
-                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"+ path_method_2[j] +"den_level_0.02/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
-                psnr_list[j].append(dic['psnr_list'])
-                
-                stack_im = dic['stack_images']
-                ref = np.sum(np.array(stack_im[0])**2)
-                residuals_stack = []
-                for l in range(len(stack_im) - 1):
-                    residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
-                residuals[j].append(residuals_stack)
+    path_method_1 = ["GD", "GD", "PGD", "PGD"]
+    path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+    for i in tqdm(range(10)):
+        for j in range(nb_method):
+            stepsize = str(stepsize_method[j])
+            dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"+ path_method_2[j] +"den_level_0.02/lamb_1.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list[j].append(dic['psnr_list'])
+            F_list[j].append(dic['F_list'])
+            f_list[j].append(dic['f_list'])
+            g_list[j].append(dic['g_list'])
+            nabla_F_list[j].append(dic['nabla_F_list'])
+            
+            stack_im = dic['stack_images']
+            ref = np.sum(np.array(stack_im[0])**2)
+            residuals_stack = []
+            for l in range(len(stack_im) - 1):
+                residuals_stack.append(np.sum((np.array(stack_im[l+1]) - np.array(stack_im[l]))**2) / ref)
+            residuals[j].append(residuals_stack)
 
     psnr_list = np.array(psnr_list)
+    f_list = np.array(f_list)
+    g_list = np.array(g_list)
+    F_list = np.array(F_list)
+    nabla_F_list = np.array(nabla_F_list)
     residuals = np.array(residuals)
 
     dict = {
         'psnr_list' : psnr_list,
+        'f_list' : f_list,
+        'g_list' : g_list,
+        'F_list' : F_list,
+        'nabla_F_list' : F_list,
+        'nabla_F_list' : nabla_F_list,
         'method_name' : method_name,
         'nb_method' : nb_method,
         'stepsize_method' : stepsize_method,
         'residuals' : residuals,
         }
     np.save(path_figure+"/result_MRI_factor_8", dict)
+
+
+
+
 
 if pars.fig_number == 8:
     # Generate figure for convergence of various methods for inpainting
@@ -879,6 +993,10 @@ if pars.fig_number == 8:
     nb_method = dic['nb_method']
     method_name = dic['method_name']
     residuals = dic['residuals']
+    f_list = dic['f_list']
+    g_list = dic['g_list']
+    F_list = dic['F_list']
+    nabla_F_list = dic['nabla_F_list']
 
     fig = plt.figure()
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -914,7 +1032,7 @@ if pars.fig_number == 8:
         residuals_min = np.quantile(np.log10(residuals[j] + 1e-15), 0.25, axis = 0)
         residuals_max = np.quantile(np.log10(residuals[j] + 1e-15), 0.75, axis = 0)
         line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
     plt.xlim(0,499)
     plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
@@ -928,6 +1046,72 @@ if pars.fig_number == 8:
 
     # plt.legend()
     fig.savefig(path_figure+'convergence_residuals_MRI_reduction_factor_8.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        f_list_mean = np.mean(f_list[j], axis = 0)
+        f_list_min = np.quantile(f_list[j], 0.25, axis = 0)
+        f_list_max = np.quantile(f_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(f_list_mean)), f_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
+
+    plt.ylabel(r"$f$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence f for MRI_8_factor")
+    fig.savefig(path_figure+'convergence_f_MRI_8_factor.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        g_list_mean = np.mean(g_list[j], axis = 0)
+        g_list_min = np.quantile(g_list[j], 0.25, axis = 0)
+        g_list_max = np.quantile(g_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(g_list_mean)), g_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
+
+    plt.ylabel(r"$g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence g for MRI_8_factor")
+    fig.savefig(path_figure+'convergence_g_MRI_8_factor.png', dpi = 300)
+    plt.show()
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        F_list_mean = np.mean(F_list[j], axis = 0)
+        F_list_min = np.quantile(F_list[j], 0.25, axis = 0)
+        F_list_max = np.quantile(F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(F_list_mean)), F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.ylabel(r"$F = \lambda f + g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence F for MRI_8_factor")
+    fig.savefig(path_figure+'convergence_F_MRI_8_factor.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        nabla_F_list_mean = np.mean(nabla_F_list[j], axis = 0)
+        nabla_F_list_min = np.quantile(nabla_F_list[j], 0.25, axis = 0)
+        nabla_F_list_max = np.quantile(nabla_F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(nabla_F_list_mean)), nabla_F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.yscale("log")
+    plt.ylabel(r"$\|\nabla F(x^k)\|$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence nabla F for MRI 8 factor")
+    fig.savefig(path_figure+'convergence_nabla_F_MRI_8_factor.png', dpi = 300)
     plt.show()
 
 
@@ -963,19 +1147,28 @@ if pars.prep_fig == 10:
     path_result = "results/SR/CBSD10/"
 
     method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
-    stepsize_method = [0.7, 0.4, 10.0, 10.0]
+    stepsize_method = [0.4, 0.4, 10.0, 10.0]
     nb_method = len(method_name)
     psnr_list = [[] for _ in range(nb_method)]
     residuals = [[] for _ in range(nb_method)]
-    for k in tqdm(range(10)):
+    F_list = [[] for _ in range(nb_method)]
+    f_list = [[] for _ in range(nb_method)]
+    g_list = [[] for _ in range(nb_method)]
+    nabla_F_list = [[] for _ in range(nb_method)]
+
+    for k in tqdm(range(1)):
         path_method_1 = ["GD", "GD", "PGD", "PGD"]
         path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
         for i in range(10):
             for j in range(nb_method):
                 stepsize = str(stepsize_method[j])
-                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/sf_2/"+ path_method_2[j] +"den_level_0.03/lamb_10.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/sf_2/"+ path_method_2[j] +"den_level_0.03/lamb_10.0/nb_itr_250/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
                 psnr_list[j].append(dic['psnr_list'])
-                
+                F_list[j].append(dic['F_list'])
+                f_list[j].append(dic['f_list'])
+                g_list[j].append(dic['g_list'])
+                nabla_F_list[j].append(dic['nabla_F_list'])
+            
                 stack_im = dic['stack_images']
                 ref = np.sum(np.array(stack_im[0])**2)
                 residuals_stack = []
@@ -984,10 +1177,19 @@ if pars.prep_fig == 10:
                 residuals[j].append(residuals_stack)
 
     psnr_list = np.array(psnr_list)
+    f_list = np.array(f_list)
+    g_list = np.array(g_list)
+    F_list = np.array(F_list)
+    nabla_F_list = np.array(nabla_F_list)
     residuals = np.array(residuals)
 
     dict = {
         'psnr_list' : psnr_list,
+        'f_list' : f_list,
+        'g_list' : g_list,
+        'F_list' : F_list,
+        'nabla_F_list' : F_list,
+        'nabla_F_list' : nabla_F_list,
         'method_name' : method_name,
         'nb_method' : nb_method,
         'stepsize_method' : stepsize_method,
@@ -1003,6 +1205,10 @@ if pars.fig_number == 10:
     nb_method = dic['nb_method']
     method_name = dic['method_name']
     residuals = dic['residuals']
+    f_list = dic['f_list']
+    g_list = dic['g_list']
+    F_list = dic['F_list']
+    nabla_F_list = dic['nabla_F_list']
 
     fig = plt.figure()
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
@@ -1038,7 +1244,7 @@ if pars.fig_number == 10:
         residuals_min = np.quantile(np.log10(residuals[j] + 1e-15), 0.25, axis = 0)
         residuals_max = np.quantile(np.log10(residuals[j] + 1e-15), 0.75, axis = 0)
         line, = plt.plot(np.arange(len(residuals_mean)), residuals_mean, label = method_name[j], color = colors[color_indx[j]])
-        plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
+        # plt.fill_between(np.arange(len(residuals_mean)), residuals_min, residuals_max, alpha=0.1, color=line.get_color())
 
     plt.xlim(0,499)
     plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
@@ -1052,6 +1258,445 @@ if pars.fig_number == 10:
 
     # plt.legend()
     fig.savefig(path_figure+'convergence_residuals_SR.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        f_list_mean = np.mean(f_list[j], axis = 0)
+        f_list_min = np.quantile(f_list[j], 0.25, axis = 0)
+        f_list_max = np.quantile(f_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(f_list_mean)), f_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(f_list_mean)), f_list_min, f_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$f$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence f for SR")
+    fig.savefig(path_figure+'convergence_f_SR.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        g_list_mean = np.mean(g_list[j], axis = 0)
+        g_list_min = np.quantile(g_list[j], 0.25, axis = 0)
+        g_list_max = np.quantile(g_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(g_list_mean)), g_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(g_list_mean)), g_list_min, g_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence g for SR")
+    fig.savefig(path_figure+'convergence_g_SR.png', dpi = 300)
+    plt.show()
+
+
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        F_list_mean = np.mean(F_list[j], axis = 0)
+        F_list_min = np.quantile(F_list[j], 0.25, axis = 0)
+        F_list_max = np.quantile(F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(F_list_mean)), F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(F_list_mean)), F_list_min, F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$F = \lambda f + g$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence F for SR")
+    fig.savefig(path_figure+'convergence_F_SR.png', dpi = 300)
+    plt.show()
+
+    fig = plt.figure()
+    
+    for j in range(nb_method):
+        nabla_F_list_mean = np.mean(nabla_F_list[j], axis = 0)
+        nabla_F_list_min = np.quantile(nabla_F_list[j], 0.25, axis = 0)
+        nabla_F_list_max = np.quantile(nabla_F_list[j], 0.75, axis = 0)
+        line, = plt.plot(np.arange(len(nabla_F_list_mean)), nabla_F_list_mean, label = method_name[j], color = colors[color_indx[j]])
+        # plt.fill_between(np.arange(len(nabla_F_list_mean)), nabla_F_list_min, nabla_F_list_max, alpha=0.1, color=line.get_color())
+
+    plt.yscale("log")
+    plt.xlim(0,49)
+    plt.xticks([0, 49], ["0", "50"], fontsize = size_number)
+
+    plt.ylabel(r"$\|\nabla F(x^k)\|$", fontsize = size_number)
+
+    plt.legend()
+    plt.title(r"Convergence nabla F for SR")
+    fig.savefig(path_figure+'convergence_nabla_F_SR.png', dpi = 300)
+    plt.show()
+
+
+
+if pars.fig_number == 11:
+    path_result = "results/inpainting/CBSD68/p_0.2/"
+
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
+    stepsize_method = [0.1, 0.1, 5.0, 5.0]
+    nb_method = len(method_name)   
+    itr_method = [-1, 500, 200, 50]
+    i_list = [7]
+    k = 0
+    path_method = ["GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/", "GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/Momentum/theta_0.2/restarting_li/", "PGD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/", "PGD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/Momentum/theta_0.2/restarting_li/"]
+    for i in i_list:
+        for j in range(nb_method):
+            stepsize = str(stepsize_method[j])
+            dic = np.load(path_result + path_method[j] + "/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            
+            if j == 0:
+                im = dic['clean_image']
+                plt.imsave(path_figure+'images_inpainting/im_'+str(i)+'_clean_.png', im, cmap = 'gray')
+                im = util.tensor2uint(dic['initial_uv'])
+                plt.imsave(path_figure+'images_inpainting/im_'+str(i)+'_init_'+'_psnr_'+str(dic['psnr_list'][0])[:5]+'.png', im, cmap = 'gray')
+                
+            im = dic['stack_images'][itr_method[j]]
+            im.save(path_figure+'images_inpainting/im_'+str(i)+'_restored_'+str(itr_method[j])+'_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_list'][itr_method[j]])[:5]+'.png')
+
+
+if pars.fig_number == 12:
+    path_result = "results/SR/CBSD10/"
+    method_name = ["RED", r"RiRED $\theta = 0.2$", "Prox-RED", r"Prox-RiRED $\theta = 0.2$"]
+    save_name = ["RED", "RiRED", "Prox_RED", "Prox_RiRED"]
+    stepsize_method = [0.7, 0.4, 10.0, 10.0]
+    nb_method = len(method_name)
+    itr_method = [-1, 125, 125, 90]
+    i_list = [6]
+    k = 0
+    path_method_1 = ["GD", "GD", "PGD", "PGD"]
+    path_method_2 = ["", "Momentum/theta_0.2/restarting_li/","", "Momentum/theta_0.2/restarting_li/"]
+    for i in i_list:
+        for j in range(nb_method):
+            stepsize = str(stepsize_method[j])
+            dic = np.load(path_result + path_method_1[j] + "/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/kernel_"+str(k)+"/sf_2/"+ path_method_2[j] +"den_level_0.03/lamb_10.0/nb_itr_500/stepsize_"+stepsize+"/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            
+            if j == 0:
+                im = dic['clean_image']
+                plt.imsave(path_figure+'images_SR/im_'+str(i)+'_clean_.png', im, cmap = 'gray')
+                im = util.tensor2uint(dic['initial_uv'])
+                plt.imsave(path_figure+'images_SR/im_'+str(i)+'_psnr_'+str(dic['psnr_list'][0])[:5]+'_init_.png', im, cmap = 'gray')
+                
+            im = dic['stack_images'][itr_method[j]]
+            im.save(path_figure+'images_SR/im_'+str(i)+'_restored_'+str(itr_method[j])+'_itr_'+save_name[j]+'_psnr_'+str(dic['psnr_list'][itr_method[j]])[:5]+'.png')
+
+
+if pars.prep_fig == 13:
+    #generate figure for inpainting on 68 images with various momentum parameter for GD
+    path_result = "results/inpainting/CBSD68/p_0.2/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus"
+
+    theta_list = [0.01, 0.1, 0.2, 0.3, 0.3]
+    psnr_list_without_restart = [[] for _ in range(len(theta_list) + 1)]
+    psnr_list_with_restart = [[] for _ in range(len(theta_list) + 1)]
+    
+    for i in tqdm(range(68)):
+        for j, theta in enumerate(theta_list):
+            dic = np.load(path_result + "/Momentum/theta_" + str(theta) + "/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list_without_restart[j].append(dic['psnr_list'])
+            dic = np.load(path_result + "/Momentum/theta_" + str(theta) + "/restarting_li/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list_with_restart[j].append(dic['psnr_list'])
+        dic = np.load(path_result + "/den_level_0.08/lamb_5.0/nb_itr_1500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list_without_restart[-1].append(dic['psnr_list'])
+        psnr_list_with_restart[-1].append(dic['psnr_list'])
+    psnr_list_without_restart = np.array(psnr_list_without_restart)
+    psnr_list_with_restart = np.array(psnr_list_with_restart)
+    dict= {
+        'theta_list' : theta_list,
+        'psnr_list_without_restart' : psnr_list_without_restart,
+        'psnr_list_with_restart' : psnr_list_with_restart,
+    }
+    np.save(path_figure+"/result_inpainting_various_theta", dict)
+
+
+if pars.fig_number == 13:
+    #generate figure for inpainting on 68 images with various momentum parameter for GD
+    dic = np.load(path_figure+"/result_inpainting_various_theta.npy", allow_pickle=True).item()
+    theta_list = dic['theta_list']
+    psnr_list_without_restart = dic['psnr_list_without_restart']
+    psnr_list_with_restart = dic['psnr_list_with_restart']
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_without_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_without_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_without_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_without_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_without_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_without_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    size_number = 15
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_inpainting_various_theta_without_restart.png', dpi = 300)
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_with_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_with_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_with_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_with_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_with_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_with_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_inpainting_various_theta_with_restart.png', dpi = 300)
+
+
+if pars.prep_fig == 14:
+    #generate figure for MRI on 10 images with various momentum parameter for GD
+    path_result = "results/MRI/MRI_knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8"
+
+    theta_list = [0.01, 0.1, 0.2, 0.3, 0.9]
+    psnr_list_without_restart = [[] for _ in range(len(theta_list) + 1)]
+    psnr_list_with_restart = [[] for _ in range(len(theta_list) + 1)]
+    
+    for i in tqdm(range(10)):
+        for j, theta in enumerate(theta_list):
+            dic = np.load(path_result + "/Momentum/theta_" + str(theta) + "/den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.4/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list_without_restart[j].append(dic['psnr_list'])
+            dic = np.load(path_result + "/Momentum/theta_" + str(theta) + "/restarting_li/den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.4/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list_with_restart[j].append(dic['psnr_list'])
+        dic = np.load(path_result + "/den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list_without_restart[-1].append(dic['psnr_list'])
+        psnr_list_with_restart[-1].append(dic['psnr_list'])
+    psnr_list_without_restart = np.array(psnr_list_without_restart)
+    psnr_list_with_restart = np.array(psnr_list_with_restart)
+    dict= {
+        'theta_list' : theta_list,
+        'psnr_list_without_restart' : psnr_list_without_restart,
+        'psnr_list_with_restart' : psnr_list_with_restart,
+    }
+    np.save(path_figure+"/result_MRI_various_theta", dict)
+
+
+if pars.fig_number == 14:
+    #generate figure for MRI on 10 images with various momentum parameter for GD
+    dic = np.load(path_figure+"/result_MRI_various_theta.npy", allow_pickle=True).item()
+    theta_list = dic['theta_list']
+    psnr_list_without_restart = dic['psnr_list_without_restart']
+    psnr_list_with_restart = dic['psnr_list_with_restart']
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_without_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_without_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_without_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_without_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_without_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_without_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    size_number = 15
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_MRI_various_theta_without_restart.png', dpi = 300)
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_with_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_with_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_with_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_with_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_with_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_with_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    plt.xlim(0,499)
+    plt.xticks([0, 499], ["0", "500"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_MRI_various_theta_with_restart.png', dpi = 300)
+
+
+if pars.prep_fig == 15:
+    #generate figure for SR on 10 images and 10 kernels of blur with various momentum parameter for GD
+    path_result = "results/SR/CBSD10/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_SoftPlus/kernel_"
+
+    theta_list = [0.01, 0.1, 0.2, 0.3, 0.9]
+    psnr_list_without_restart = [[] for _ in range(len(theta_list) + 1)]
+    psnr_list_with_restart = [[] for _ in range(len(theta_list) + 1)]
+    
+    for i in tqdm(range(10)):
+        for k in range(10):
+            for j, theta in enumerate(theta_list):
+                if theta == 0.2:
+                    nb_itr = "500"
+                else:
+                    nb_itr = "250"
+                dic = np.load(path_result + str(k) + "/sf_2/Momentum/theta_" + str(theta) + "/den_level_0.03/lamb_10.0/nb_itr_250/stepsize_0.4/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                psnr_list_without_restart[j].append(dic['psnr_list'])
+                dic = np.load(path_result + str(k) + "/sf_2/Momentum/theta_" + str(theta) + "/restarting_li/den_level_0.03/lamb_10.0/nb_itr_"+nb_itr+"/stepsize_0.4/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+                if theta == 0.2:
+                    psnr_list_with_restart[j].append(dic['psnr_list'][:251])
+                else:
+                    psnr_list_with_restart[j].append(dic['psnr_list'])
+            dic = np.load(path_result + str(k) + "/sf_2/den_level_0.03/lamb_10.0/nb_itr_500/stepsize_0.7/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list_without_restart[-1].append(dic['psnr_list'][:251])
+            psnr_list_with_restart[-1].append(dic['psnr_list'][:251])
+    psnr_list_without_restart = np.array(psnr_list_without_restart)
+    psnr_list_with_restart = np.array(psnr_list_with_restart)
+    dict= {
+        'theta_list' : theta_list,
+        'psnr_list_without_restart' : psnr_list_without_restart,
+        'psnr_list_with_restart' : psnr_list_with_restart,
+    }
+    np.save(path_figure+"/result_SR_various_theta", dict)
+
+
+if pars.fig_number == 15:
+    #generate figure for SR on 10 images with 10 kernels of blur with various momentum parameter for GD
+    dic = np.load(path_figure+"/result_SR_various_theta.npy", allow_pickle=True).item()
+    theta_list = dic['theta_list']
+    psnr_list_without_restart = dic['psnr_list_without_restart']
+    psnr_list_with_restart = dic['psnr_list_with_restart']
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_without_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_without_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_without_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_without_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_without_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_without_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    size_number = 15
+    plt.xlim(0,250)
+    plt.xticks([0, 250], ["0", "250"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_SR_various_theta_without_restart.png', dpi = 300)
+
+    fig = plt.figure()
+    for i, theta in enumerate(theta_list):
+        psnr_mean = np.mean(psnr_list_with_restart[i], axis = 0)
+        psnr_min = np.quantile(psnr_list_with_restart[i], 0.25, axis = 0)
+        psnr_max = np.quantile(psnr_list_with_restart[i], 0.75, axis = 0)
+        line,  = plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$\theta = $"+str(theta))
+        plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    psnr_mean = np.mean(psnr_list_with_restart[-1], axis = 0)
+    psnr_min = np.quantile(psnr_list_with_restart[-1], 0.25, axis = 0)
+    psnr_max = np.quantile(psnr_list_with_restart[-1], 0.75, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"RED")
+    # plt.fill_between(np.arange(len(psnr_mean)), psnr_min, psnr_max, alpha=0.1, color=line.get_color())
+    plt.xlim(0,250)
+    plt.xticks([0, 250], ["0", "250"], fontsize = size_number)
+    # plt.ylim(18,29)
+    # plt.yticks([18, 28], ["18", "28"], fontsize = size_number)
+    plt.legend()
+    fig.savefig(path_figure+'/result_SR_various_theta_with_restart.png', dpi = 300)
+
+
+if pars.fig_number == 16:
+    #generate figure for MRI on 10 images with various restarting parameter and the momentum parameter theta = 0.2 or theta = 0.001
+    path_result = "results/MRI/MRI_knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/Momentum/theta_0.2/"
+
+    B_list = [100.0, 1000.0, 3000.0, 5000.0, 7000.0, 10000.0, 100000.0]
+    fig = plt.figure()
+    
+    for B in B_list:
+        psnr_list = []
+        for i in range(10):
+            dic = np.load(path_result + 'restarting_li/den_level_0.02/lamb_1.0/B_' + str(B) + "/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list.append(dic['psnr_list'])
+        psnr_list = np.array(psnr_list)
+        psnr_mean = np.mean(psnr_list, axis = 0)
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = $"+str(B)[:-2])
+    
+    psnr_list = []
+    for i in range(10):
+        dic = np.load(path_result + "den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = +\infty$")
+    
+
+    path_result = "results/MRI/MRI_knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"
+    psnr_list = []
+    for i in range(10):
+        dic = np.load(path_result + "den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED', linestyle='--')
+
+    # plt.legend()
+    fig.savefig(path_figure+'/result_momentum_various_B_MRI_theta_0.2.png', dpi = 300)
+    plt.show()
+
+    # For theta = 0.001
+
+    path_result = "results/MRI/MRI_knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/Momentum/theta_0.001/"
+
+    B_list = [100.0, 1000.0, 3000.0, 5000.0, 7000.0, 10000.0, 100000.0]
+    fig = plt.figure()
+    
+    for B in B_list:
+        psnr_list = []
+        for i in range(10):
+            dic = np.load(path_result + 'restarting_li/den_level_0.02/lamb_1.0/B_' + str(B) + "/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+            psnr_list.append(dic['psnr_list'])
+        psnr_list = np.array(psnr_list)
+        psnr_mean = np.mean(psnr_list, axis = 0)
+        plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = $"+str(B)[:-2])
+    
+    psnr_list = []
+    for i in range(10):
+        dic = np.load(path_result + "den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = r"$B = +\infty$")
+    
+
+    path_result = "results/MRI/MRI_knee/GD/sigma_obs_1.0/denoiser_name_GSDRUNet_grayscale/reduction_factor_8/"
+    psnr_list = []
+    for i in range(10):
+        dic = np.load(path_result + "den_level_0.02/lamb_1.0/nb_itr_500/stepsize_0.1/dict_results_"+str(i)+".npy", allow_pickle=True).item()
+        psnr_list.append(dic['psnr_list'])
+    psnr_list = np.array(psnr_list)
+    psnr_mean = np.mean(psnr_list, axis = 0)
+    plt.plot(np.arange(len(psnr_mean)), psnr_mean, label = 'RED', linestyle='--')
+
+    # plt.legend()
+    fig.savefig(path_figure+'/result_momentum_various_B_MRI_theta_0.001.png', dpi = 300)
     plt.show()
 
 
