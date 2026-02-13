@@ -217,7 +217,7 @@ def data_fidelity_prox_step(self, x, y, stepsize):
                     norm = 0.5*(stepsize*self.lamb)*torch.sum(torch.abs(difference)**2) + 0.5*torch.sum(torch.abs(uu-input)**2)
                     norm_grad = torch.autograd.grad(outputs=norm, inputs=uu)[0]
                     data_grad = norm_grad
-                    vv -= data_grad
+                    vv -= data_grad*dt
                     crit = torch.sum(torch.abs(data_grad.detach())**2)
             x = uu
             px = x
