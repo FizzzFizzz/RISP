@@ -129,6 +129,8 @@ def A(self, x):
         Ax = self.M[None,None,:,:] * fft2c(x)
     elif self.Pb == 'despeckle':
         Ax = x
+    elif self.Pb == 'rician':
+        Ax = x
     else:
         raise ValueError('degradation not implemented')
     return Ax  
@@ -217,7 +219,7 @@ def data_fidelity_prox_step(self, x, y, stepsize):
                     norm = 0.5*(stepsize*self.lamb)*torch.sum(torch.abs(difference)**2) + 0.5*torch.sum(torch.abs(uu-input)**2)
                     norm_grad = torch.autograd.grad(outputs=norm, inputs=uu)[0]
                     data_grad = norm_grad
-                    vv -= data_grad*dt
+                    vv -= dt*data_grad
                     crit = torch.sum(torch.abs(data_grad.detach())**2)
             x = uu
             px = x
