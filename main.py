@@ -279,12 +279,13 @@ for i in range(hparams.start_im_indx, len(input_paths)):
         plt.xlabel('iter')
         plt.ylabel('SSIM')
         plt.savefig(savepth+"/{}_SSIM_list.png".format(i))
-        itr_list = range(len(model.F_list))
-        plt.clf()
-        plt.plot(itr_list, model.F_list, '-', alpha=0.8, linewidth=1.5)
-        plt.xlabel('iter')
-        plt.ylabel('F values')
-        plt.savefig(savepth+"/{}_F_list.png".format(i))
+        if hparams.dont_compute_potential==False:
+            itr_list = range(len(model.F_list))
+            plt.clf()
+            plt.plot(itr_list, model.F_list, '-', alpha=0.8, linewidth=1.5)
+            plt.xlabel('iter')
+            plt.ylabel('F values')
+            plt.savefig(savepth+"/{}_F_list.png".format(i))
     
     dict = {
             'Pb' : hparams.Pb,
