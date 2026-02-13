@@ -1,4 +1,4 @@
-# PnP-Acceleration
+# RISP
 
 This repos contains the code associated with the paper "Provably Accelerated Imaging with Restarted Inertia and Score-based image priors".
 
