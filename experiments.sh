@@ -93,61 +93,31 @@ python main.py --dont_save_images --reduction_factor 8 --sigma_obs 1.0 --stepsiz
 
 
 
-# python main.py --save_frequency 10 --Pb "ODT" --ODT_Nxy 128 --ODT_Rec 180 --ODT_Trans 20 --dataset_name 'ODT10' --denoiser_name "DRUNet_ODT" --nb_itr 50 --denoiser_level 0.03 --stepsize 4e-3 --lamb 1e5 --alg "GD" 
 
 
 
 
 
 
+### For Rician noise removal.
+# RISP-GM
+python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 0.03 --theta 0.01 --restarting_li --B 1000 --momentum --alg "GD" --dont_compute_potential
+# RED-GM
+python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 0.03 --theta 1.00 --restarting_li --B 1e10 --momentum --alg "GD" --dont_compute_potential
+# RISP-Prox
+python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 5e-4 --theta 0.01 --restarting_li --B 1000 --momentum --alg "PGD" --dont_compute_potential
+# RED-Prox
+python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 5e-4 --theta 1.00 --restarting_li --B 1e10 --momentum --alg "PGD" --dont_compute_potential
 
-#### For ODT with image size 1024, 360 rec, 240 trans, 0.0001 noise:
-
-# # RiRED
-# for i in 0.01  1.0
-# do
-#     python main.py --Pb "ODT" --save_frequency 200 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 4e-3 --theta $i --restarting_li --B 5e5 --momentum --alg "GD" 
-# done
-
-# # Prox-RiRED
-# for i in 0.01  1.0
-# do
-#     python main.py --Pb "ODT" --save_frequency 200 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta $i --restarting_li --B 5e5 --momentum --alg "PGD" 
-# done
-
-
-
-
-
-#### For Rician noise removal on natural color images, noise level 25.5
-##### RiRED
-# for i in 0.01  1.0  
-# do
-#     for B in 1e3
-#     do
-#         python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD68_cut8_10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 0.03 --theta $i --restarting_li --B $B --momentum --alg "GD" 
-#     done
-# done
-
-# ##### Prox-RiRED
-# for i in  1.0 0.01 
-# do
-#     for B in 1e3 
-#     do
-#         python main.py --Pb "rician" --sigma_obs 25.5 --save_frequency 5  --dataset_name 'CBSD68_cut8_10' --denoiser_name "GSDRUNet_SoftPlus" --nb_itr 500 --lamb 5e-3 --denoiser_level 0.05 --stepsize 5e-4 --theta $i --restarting_li --B $B --momentum --alg "PGD" 
-#     done
-# done
-
-
-# ### For linear inverse scattering.
-# # RISP-GM
-# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "GD" --dont_compute_potential
-# # RED-GM
-# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "GD" --dont_compute_potential
-# # RISP-Prox
-# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "PGD" --dont_compute_potential
-# # RISP-GM
-# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "PGD" --dont_compute_potential
+### For linear inverse scattering with image size 1024, 360 rec, 240 trans, 0.0001 noise:
+# RISP-GM
+python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "GD" 
+# RED-GM
+python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 1.00 --restarting_li --B 1e10 --momentum --alg "GD" 
+# RISP-Prox
+python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "PGD" 
+# RISP-GM
+python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 1.00 --restarting_li --B 1e10 --momentum --alg "PGD" 
 
 
 
