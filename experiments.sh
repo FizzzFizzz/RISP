@@ -141,13 +141,13 @@ python main.py --dont_save_images --reduction_factor 8 --sigma_obs 1.0 --stepsiz
 
 # ### For linear inverse scattering.
 # # RISP-GM
-# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "GD" 
+# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "GD" --dont_compute_potential
 # # RED-GM
-# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "GD" 
+# python main.py --Pb "ODT" --save_frequency 2000 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 20000 --lamb 1e5 --denoiser_level 0.03 --stepsize 1e-3 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "GD" --dont_compute_potential
 # # RISP-Prox
-# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "PGD" 
+# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 0.01 --restarting_li --B 5e5 --momentum --alg "PGD" --dont_compute_potential
 # # RISP-GM
-# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "PGD" 
+# python main.py --Pb "ODT" --save_frequency 20 --ODT_Nxy 1024 --ODT_Rec 360 --ODT_Trans 240 --dataset_name 'ODT1024_01' --denoiser_name "DRUNet_ODT" --nb_itr 10000 --lamb 1e5 --denoiser_level 0.03 --stepsize 0.005 --theta 1.00 --restarting_li --B 5e5 --momentum --alg "PGD" --dont_compute_potential
 
 
 
