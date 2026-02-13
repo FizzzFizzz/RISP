@@ -1,6 +1,6 @@
 # RISP
 
-This repos contains the code associated with the paper "Provably Accelerated Imaging with Restarted Inertia and Score-based image priors".
+This repos contains the code associated with the paper "Provably Accelerated Imaging with Restarted Inertia and Score-based image priors" accepted by ICLR 2026.
 
 ## Prerequisites - setting the environment
 
